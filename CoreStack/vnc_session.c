@@ -4,10 +4,8 @@
 #include <stdlib.h>
 
 #include "Platform/conn.h"
-#include "Platform/timer.h"
 
-
-void *vnc_session_main_task(void *args)
+void vnc_session_main_task(void *args)
 {
 	struct vnc_session *session = (struct vnc_session *)args;
 	int fd = conn_open(session->ip, session->port);

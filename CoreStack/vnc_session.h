@@ -8,6 +8,6 @@ struct vnc_session {
 	uint16_t port;
 };
 
-extern void *vnc_session_main_task(void *args);
+extern void vnc_session_main_task(void *args);
 
 #endif
