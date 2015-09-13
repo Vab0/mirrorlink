@@ -15,7 +15,7 @@ void vnc_session_main_task(void *args)
 		conn_read(fd, buf, 12);
 		if (0 != memcmp(buf, "RFB 003.008\n", 12)) {
 			conn_close(fd);
-			return session;
+			return;
 		} else {
 			conn_write(fd, buf, 12);
 		}
@@ -32,7 +32,7 @@ void vnc_session_main_task(void *args)
 			conn_read(fd, buf, n);
 			free(buf);
 			conn_close(fd);
-			return session;
+			return;
 		} else {
 			uint8_t i;
 			uint8_t flag;
@@ -51,11 +51,11 @@ void vnc_session_main_task(void *args)
 					conn_write(fd, &flag, 1);
 				} else {
 					conn_close(fd);
-					return session;
+					return;
 				}
 			} else {
 				conn_close(fd);
-				return session;
+				return;
 			}
 		}
 	}
@@ -71,11 +71,11 @@ void vnc_session_main_task(void *args)
 			conn_read(fd, buf, rlen);
 			free(buf);
 			conn_close(fd);
-			return session;
+			return;
 		} else if (0 != r) {
 			free(buf);
 			conn_close(fd);
-			return session;
+			return;
 		}
 	}
 	/* Initialization Messages */
@@ -95,7 +95,7 @@ void vnc_session_main_task(void *args)
 		} else {
 			free(buf);
 			conn_close(fd);
-			return session;
+			return;
 		}
 		/* parse server infomation */
 		free(buf);
