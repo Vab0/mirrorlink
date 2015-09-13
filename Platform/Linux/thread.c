@@ -2,7 +2,14 @@
 
 #include <pthread.h>
 
+#include <sys/timerfd.h>
+
 #include <stdlib.h>
+#include <stddef.h>
+#include <errno.h>
+#include <string.h>
+
+#define LIST_HEAD_ENTRY(type, mem, ptr) (type *)((unsigned char *)(ptr) - offsetof(type, mem))
 
 struct list_head {
 	struct list_head *prev;
@@ -14,7 +21,7 @@ struct timer {
 	int black;
 	void *args;
 	void (*dispatch)(int fd, void *args);
-	struct list_head *list;
+	struct list_head list;
 };
 
 struct thread_param {
@@ -30,6 +37,8 @@ static pthread_once_t key_once = PTHREAD_ONCE_INIT;
 static void once_make_key(void);
 static void once_destructor(void *args);
 static void *common_thread_entry(void *args);
+static void list_head_insert(struct list_head *head, struct list_head *v);
+static void list_head_remove(struct list_head *v);
 
 void once_make_key(void)
 {
@@ -39,8 +48,15 @@ void once_make_key(void)
 void once_destructor(void *args)
 {
 	struct thread_param *param = (struct thread_param *)args;
+	struct list_head *head = &(param->timer);
+	struct list_head *cur;
+	struct list_head *tmp;
 	free(param->args);
-	/* destory timer */
+	for (cur = head->next, tmp = cur->next; cur != head; cur = tmp, tmp = cur->next) {
+		struct timer *timer = LIST_HEAD_ENTRY(struct timer, list, cur);
+		list_head_remove(cur);
+		free(timer);
+	}
 	free(param);
 }
 
@@ -56,7 +72,7 @@ void *common_thread_entry(void *args)
 
 void thread_post(thread_func f, void *args)
 {
-	struct thread_param *param = (struct thread_param *)malloc(*param);
+	struct thread_param *param = (struct thread_param *)malloc(sizeof(*param));
 	pthread_t thread;
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
@@ -65,17 +81,17 @@ void thread_post(thread_func f, void *args)
 	param->args = args;
 	param->timer.next = param->timer.prev = &(param->timer);
 	/* reference to msg queue from tls */
-	pthread_create(&thread, &attr, THREAD_FUNCTION, param);
+	pthread_create(&thread, &attr, common_thread_entry, param);
 }
 
-int timer_start(uint32_t s, timer_func f, void *args);
+int timer_start(uint32_t s, timer_func f, void *args)
 {
 	struct timer *t;
-	struct itimerspec t;
+	struct itimerspec ts;
 	int ret;
 	int fd;
 	uint64_t v = 0;
-	struct list_head *head = ((struct thread_param *)pthread_getspecific(key))->timer;
+	struct list_head *head = &(((struct thread_param *)pthread_getspecific(key))->timer);
 	if (0 == head) {
 		return -1;
 	}
@@ -84,9 +100,9 @@ int timer_start(uint32_t s, timer_func f, void *args);
 		return -1;
 	}
 
-	memset(&t, 0, sizeof(t));
-	t.it_interval.tv_sec = s;
-	ret = timerfd_settime(fd, 0, &t, 0);
+	memset(&ts, 0, sizeof(ts));
+	ts.it_interval.tv_sec = s;
+	ret = timerfd_settime(fd, 0, &ts, 0);
 	if (-1 == ret) {
 		close(fd);
 		return -1;
@@ -96,57 +112,92 @@ int timer_start(uint32_t s, timer_func f, void *args);
 	t->black = 0;
 	t->args = args;
 	t->dispatch = f;
-	/* list insert to head */
+	list_head_insert(head, &(t->list));
 	return fd;
 }
 
 void timer_dispatch(void)
 {
-	struct list_head *head = ((struct thread_param *)pthread_getspecific(key))->timer;
-	struct timer *timer = 0;
+	struct list_head *head = &(((struct thread_param *)pthread_getspecific(key))->timer);
+	struct list_head *cur;
+	struct list_head *tmp;
+
 	if (0 == head) {
 		return;
 	}
-	{
-		uint64_t val;
-		int ret;
+	
+	for (cur = head->next, tmp = cur->next; cur != head; cur = tmp, tmp = cur->next) {
+		struct timer *timer = LIST_HEAD_ENTRY(struct timer, list, cur);
+		if (0 == timer->black) {
+			uint64_t val;
+			int ret;
 read_intr:
-		ret = read(fd, &val, sizeof(val));
-		if (-1 == ret) {
-			if (EINTR == errno) {
-				goto read_intr;
-			} else if (EAGAIN == errno || EWOULDBLOCK == errno) {
-				continue;
+			ret = read(timer->fd, &val, sizeof(val));
+			if (-1 == ret) {
+				if (EINTR == errno) {
+					goto read_intr;
+				} else if (EAGAIN == errno || EWOULDBLOCK == errno) {
+					continue;
+				} else {
+					break;
+				}
 			} else {
-				break;
+				timer->black = 1;
+				timer->dispatch(timer->fd, timer->args);
 			}
-		} else {
-			timer->black = 1;
-			timer->dispatch(timer->fd, timer->args);
 		}
 	}
+	
 	{
-		if (1 == timer->black) {
-			timer->black = 0;
-		} else if (2 == timer->black) {
-			/* remove from head */
-			free(timer);
+		struct list_head *cur;
+		struct list_head *tmp;
+		for (cur = head->next, tmp = cur->next; cur != head; cur = tmp, tmp = cur->next) {
+			struct timer *timer = LIST_HEAD_ENTRY(struct timer, list, cur);
+			if (1 == timer->black) {
+				timer->black = 0;
+			} else if (2 == timer->black) {
+				list_head_remove(cur);
+				free(timer);
+			}
 		}
 	}
 }
 
 void timer_stop(int fd)
 {
-	struct list_head *head = ((struct thread_param *)pthread_getspecific(key))->timer;
-	struct timer *timer = 0;
+	struct list_head *head = &(((struct thread_param *)pthread_getspecific(key))->timer);
+	struct list_head *cur;
+	struct list_head *tmp;
+
 	if (0 == head) {
 		return;
 	}
-	if (timer->black) {
-		timer->black = 2;
-	} else {
-		/* remove from head */
-		free(timer);
+	for (cur = head->next, tmp = cur->next; cur != head; cur = tmp, tmp = cur->next) {
+		struct timer *timer = LIST_HEAD_ENTRY(struct timer, list, cur);
+		if (fd == timer->fd) {
+			if (timer->black) {
+				timer->black = 2;
+			} else {
+				list_head_remove(cur);
+				free(timer);
+			}
+			break;
+		}
+	}
+}
+
+void list_head_insert(struct list_head *head, struct list_head *v)
+{
+	v->next = head;
+	v->prev = head->prev;
+	head->prev->next = v;
+	head->prev = v;
+}
+void list_head_remove(struct list_head *v)
+{
+	if (v->next != v) {
+		v->prev->next = v->next;
+		v->next->prev = v->prev;
 	}
 }
 

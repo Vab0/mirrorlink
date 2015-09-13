@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-typedef void (*thread_func)(void);
+typedef void (*thread_func)(void *args);
 
 typedef void (*timer_func)(int fd, void *args);
 
