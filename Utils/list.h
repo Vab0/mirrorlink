@@ -5,6 +5,9 @@
 
 #define LIST_HEAD_ENTRY(type, mem, ptr) (type *)((unsigned char *)(ptr) - offsetof(type, mem))
 
+#define LIST_HEAD_FOREACH(head, cur, tmp) \
+for (cur = head->next, tmp = cur->next; cur != head; cur = tmp, tmp = cur->next)
+
 struct list_head {
 	struct list_head *prev;
 	struct list_head *next;

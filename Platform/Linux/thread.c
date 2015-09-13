@@ -44,7 +44,7 @@ void once_destructor(void *args)
 	struct list_head *cur;
 	struct list_head *tmp;
 	free(param->args);
-	for (cur = head->next, tmp = cur->next; cur != head; cur = tmp, tmp = cur->next) {
+	LIST_HEAD_FOREACH(head, cur, tmp) {
 		struct timer *timer = LIST_HEAD_ENTRY(struct timer, list, cur);
 		list_head_remove(cur);
 		free(timer);
@@ -117,8 +117,8 @@ void timer_dispatch(void)
 	if (0 == head) {
 		return;
 	}
-	
-	for (cur = head->next, tmp = cur->next; cur != head; cur = tmp, tmp = cur->next) {
+
+	LIST_HEAD_FOREACH(head, cur, tmp) {
 		struct timer *timer = LIST_HEAD_ENTRY(struct timer, list, cur);
 		if (0 == timer->black) {
 			uint64_t val;
@@ -143,7 +143,7 @@ read_intr:
 	{
 		struct list_head *cur;
 		struct list_head *tmp;
-		for (cur = head->next, tmp = cur->next; cur != head; cur = tmp, tmp = cur->next) {
+		LIST_HEAD_FOREACH(head, cur, tmp) {
 			struct timer *timer = LIST_HEAD_ENTRY(struct timer, list, cur);
 			if (1 == timer->black) {
 				timer->black = 0;
@@ -164,7 +164,7 @@ void timer_stop(int fd)
 	if (0 == head) {
 		return;
 	}
-	for (cur = head->next, tmp = cur->next; cur != head; cur = tmp, tmp = cur->next) {
+	LIST_HEAD_FOREACH(head, cur, tmp) {
 		struct timer *timer = LIST_HEAD_ENTRY(struct timer, list, cur);
 		if (fd == timer->fd) {
 			if (timer->black) {
