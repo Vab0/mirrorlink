@@ -1,4 +1,5 @@
-#include "../thread.h"
+#include "Platform/thread.h"
+#include "Utils/list.h"
 
 #include <pthread.h>
 
@@ -8,13 +9,6 @@
 #include <stddef.h>
 #include <errno.h>
 #include <string.h>
-
-#define LIST_HEAD_ENTRY(type, mem, ptr) (type *)((unsigned char *)(ptr) - offsetof(type, mem))
-
-struct list_head {
-	struct list_head *prev;
-	struct list_head *next;
-};
 
 struct timer {
 	int fd;
@@ -37,8 +31,6 @@ static pthread_once_t key_once = PTHREAD_ONCE_INIT;
 static void once_make_key(void);
 static void once_destructor(void *args);
 static void *common_thread_entry(void *args);
-static void list_head_insert(struct list_head *head, struct list_head *v);
-static void list_head_remove(struct list_head *v);
 
 void once_make_key(void)
 {
@@ -183,21 +175,6 @@ void timer_stop(int fd)
 			}
 			break;
 		}
-	}
-}
-
-void list_head_insert(struct list_head *head, struct list_head *v)
-{
-	v->next = head;
-	v->prev = head->prev;
-	head->prev->next = v;
-	head->prev = v;
-}
-void list_head_remove(struct list_head *v)
-{
-	if (v->next != v) {
-		v->prev->next = v->next;
-		v->next->prev = v->prev;
 	}
 }
 
