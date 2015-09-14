@@ -1,0 +1,8 @@
+SHA-256 Hashes, 64-bit Encoded, for SubjectPublicKeyInfo
+------------------------------------------------------
+
+CTS root: Ee7/JWiYCpXtqfAI+WKnCNWNgSQMY1+8BM97rijVtNU=
+ 
+Manufacturer:  vh/dvMN5TRC6e/AWVCW8YxPrBcqBv4SQXZORLnaHB/8=
+ 
+Device: 2VaY7eLjW1cbOfIUkp3wWz6W+FvSZdZsTp5owkjNy+Q=
