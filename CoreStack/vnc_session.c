@@ -117,39 +117,39 @@ void vnc_session_main_task(void *args)
 		conn_read(fd, &msg_type, 1);
 		switch (msg_type) {
 			case 0: /* Framebuffer Update */
-			{
-				uint8_t header[3];
-				uint16_t num;
-				conn_read(fd, header, 3);
-				num = (uint16_t)header[1] << 8 | header[2];
-				fb_update_parse(fd, num);
-			}
-			break;
+				{
+					uint8_t header[3];
+					uint16_t num;
+					conn_read(fd, header, 3);
+					num = (uint16_t)header[1] << 8 | header[2];
+					fb_update_parse(fd, num);
+				}
+				break;
 			case 1: /* Set Colour Map Entries */
 				/* MUST NOT be used during a MirrorLink Session */
-			break;
+				break;
 			case 2: /* Bell */
-			break;
+				break;
 			case 3: /* Server Cut Text */
-			{
-				uint8_t header[7];
-				uint32_t len;
-				conn_read(fd, header, 7);
-				len = ((uint32_t)header[3] << 24) | ((uint32_t)header[4] << 16) | ((uint32_t)header[5] << 8) | header[6];
-				server_cut_text_parse(fd, len);
-			}
-			break;
+				{
+					uint8_t header[7];
+					uint32_t len;
+					conn_read(fd, header, 7);
+					len = ((uint32_t)header[3] << 24) | ((uint32_t)header[4] << 16) | ((uint32_t)header[5] << 8) | header[6];
+					server_cut_text_parse(fd, len);
+				}
+				break;
 			case 128: /* MirrorLink Extension Message */
-			{
-				uint8_t header[3];
-				uint16_t len;
-				conn_read(fd, header, 3);
-				len = ((uint16_t)header[1] << 8) | header[2];
-				ex_message_parse(fd, header[0], len);
-			}
-			break;
+				{
+					uint8_t header[3];
+					uint16_t len;
+					conn_read(fd, header, 3);
+					len = ((uint16_t)header[1] << 8) | header[2];
+					ex_message_parse(fd, header[0], len);
+				}
+				break;
 			default:
-			break;
+				break;
 		}
 	}
 }
@@ -290,35 +290,35 @@ void fb_update_parse(int fd, uint16_t num)
 		etype = ((uint32_t)ptr[8] << 24) | ((uint32_t)ptr[8] << 16) | ((uint32_t)ptr[8] << 8) | ptr[8];
 		switch (etype) {
 			case 0: /* Raw Encoding */
-			{
+				{
 
-			}
-			break;
+				}
+				break;
 			case -523: /* MirrorLink Encoding */
-			{
+				{
 
-			}
-			break;
+				}
+				break;
 			case -524: /* Context Information */
-			{
+				{
 
-			}
-			break;
+				}
+				break;
 			case -223: /* Desktop Size */
-			{
+				{
 
-			}
-			break;
+				}
+				break;
 			case -525: /* Run Length Encoding */
-			{
+				{
 
-			}
-			break;
+				}
+				break;
 			case -526: /* Transform Encoding */
-			{
+				{
 
-			}
-			break;
+				}
+				break;
 		}
 		ptr += 12;
 	}
