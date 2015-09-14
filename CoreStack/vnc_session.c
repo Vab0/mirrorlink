@@ -5,9 +5,9 @@
 
 #include "Platform/conn.h"
 
-static void fb_update_parse(uint8_t *buf, uint16_t num);
-static void server_cut_text_parse(uint8_t *buf, uint32_t len);
-static void ex_message_parse(uint8_t etype, uint8_t *buf, uint16_t len);
+static void fb_update_parse(int fd, uint16_t num);
+static void server_cut_text_parse(int fd, uint32_t len);
+static void ex_message_parse(int fd, uint8_t etype, uint16_t len);
 
 void vnc_session_main_task(void *args)
 {
@@ -119,14 +119,10 @@ void vnc_session_main_task(void *args)
 			case 0: /* Framebuffer Update */
 			{
 				uint8_t header[3];
-				uint8_t *buf;
 				uint16_t num;
 				conn_read(fd, header, 3);
 				num = (uint16_t)header[1] << 8 | header[2];
-				buf = (uint8_t *)malloc(12 * num);
-				conn_read(fd, buf, 12 * num);
-				fb_update_parse(buf, num);
-				free(buf);
+				fb_update_parse(fd, num);
 			}
 			break;
 			case 1: /* Set Colour Map Entries */
@@ -137,27 +133,19 @@ void vnc_session_main_task(void *args)
 			case 3: /* Server Cut Text */
 			{
 				uint8_t header[7];
-				uint8_t *buf;
 				uint32_t len;
 				conn_read(fd, header, 7);
 				len = ((uint32_t)header[3] << 24) | ((uint32_t)header[4] << 16) | ((uint32_t)header[5] << 8) | header[6];
-				buf = (uint8_t *)malloc(len);
-				conn_read(fd, buf, len);
-				server_cut_text_parse(buf, len);
-				free(buf);
+				server_cut_text_parse(fd, len);
 			}
 			break;
 			case 128: /* MirrorLink Extension Message */
 			{
 				uint8_t header[3];
-				uint8_t *buf;
 				uint16_t len;
 				conn_read(fd, header, 3);
 				len = ((uint16_t)header[1] << 8) | header[2];
-				buf = (uint8_t *)malloc(len);
-				conn_read(fd, buf, len);
-				ex_message_parse(header[0], buf, len);
-				free(buf);
+				ex_message_parse(fd, header[0], len);
 			}
 			break;
 			default:
@@ -166,8 +154,12 @@ void vnc_session_main_task(void *args)
 	}
 }
 
-void ex_message_parse(uint8_t etype, uint8_t *buf, uint16_t len)
+void ex_message_parse(int fd, uint8_t etype, uint16_t len)
 {
+	uint8_t *buf;
+	buf = (uint8_t *)malloc(len);
+	conn_read(fd, buf, len);
+	
 	switch (etype) {
 		case 0: /* ByeBye */
 			{
@@ -275,15 +267,70 @@ void ex_message_parse(uint8_t etype, uint8_t *buf, uint16_t len)
 			}
 			break;
 	}
+	free(buf);
 }
 
-void fb_update_parse(uint8_t *buf, uint16_t num)
+void fb_update_parse(int fd, uint16_t num)
 {
+	uint8_t *buf;
+	uint8_t *ptr;
+	uint16_t px;
+	uint16_t py;
+	uint16_t w;
+	uint16_t h;
+	int32_t etype;
+	uint16_t i;
+	ptr = buf = (uint8_t *)malloc(12 * num);
+	conn_read(fd, buf, 12 * num);
+	for (i = 0; i < num; i++) {
+		px = ((uint16_t)ptr[0] << 8) | ptr[1];
+		py = ((uint16_t)ptr[2] << 8) | ptr[3];
+		w = ((uint16_t)ptr[4] << 8) | ptr[5];
+		h = ((uint16_t)ptr[6] << 8) | ptr[7];
+		etype = ((uint32_t)ptr[8] << 24) | ((uint32_t)ptr[8] << 16) | ((uint32_t)ptr[8] << 8) | ptr[8];
+		switch (etype) {
+			case 0: /* Raw Encoding */
+			{
 
+			}
+			break;
+			case -523: /* MirrorLink Encoding */
+			{
+
+			}
+			break;
+			case -524: /* Context Information */
+			{
+
+			}
+			break;
+			case -223: /* Desktop Size */
+			{
+
+			}
+			break;
+			case -525: /* Run Length Encoding */
+			{
+
+			}
+			break;
+			case -526: /* Transform Encoding */
+			{
+
+			}
+			break;
+		}
+		ptr += 12;
+	}
+	free(buf);
 }
 
-void server_cut_text_parse(uint8_t *buf, uint32_t len)
+void server_cut_text_parse(int fd, uint32_t len)
 {
-
+	uint8_t *buf;
+	buf = (uint8_t *)malloc(len);
+	conn_read(fd, buf, len);
+	
+	free(buf);
 }
 
