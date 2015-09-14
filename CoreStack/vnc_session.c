@@ -116,7 +116,7 @@ void vnc_session_main_task(void *args)
 		uint8_t msg_type;
 		conn_read(fd, &msg_type, 1);
 		switch (msg_type) {
-			case 0:
+			case 0: /* Framebuffer Update */
 			{
 				uint8_t header[3];
 				uint8_t *buf;
@@ -147,7 +147,7 @@ void vnc_session_main_task(void *args)
 				free(buf);
 			}
 			break;
-			case 128:
+			case 128: /* MirrorLink Extension Message */
 			{
 				uint8_t header[3];
 				uint8_t *buf;
@@ -286,22 +286,4 @@ void server_cut_text_parse(uint8_t *buf, uint32_t len)
 {
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
