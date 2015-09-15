@@ -5,6 +5,7 @@
 
 #include "Platform/conn.h"
 
+
 static void fb_update_parse(int fd, uint16_t num);
 static void server_cut_text_parse(int fd, uint32_t len);
 static void ex_message_parse(int fd, uint8_t etype, uint16_t len);
@@ -110,7 +111,7 @@ void vnc_session_main_task(void *args)
 		/* Set Encoding: MirrorLink, ContextInfo, DesktopSize */
 		conn_write(fd, data, 16);
 		/* Set Pixel Format: ARGB 888, RGB 565 */
-		/* conn_write(fd, data, 20); */
+		conn_write(fd, data, 20);
 	}
 	while (1) {
 		uint8_t msg_type;
@@ -121,12 +122,23 @@ void vnc_session_main_task(void *args)
 					uint8_t header[3];
 					uint16_t num;
 					conn_read(fd, header, 3);
-					num = (uint16_t)header[1] << 8 | header[2];
+					num = ((uint16_t)header[1] << 8) | header[2];
 					fb_update_parse(fd, num);
 				}
 				break;
 			case 1: /* Set Colour Map Entries */
 				/* MUST NOT be used during a MirrorLink Session */
+				{
+					uint8_t header[6];
+					uint16_t num;
+					uint8_t *dummy;
+					conn_read(fd, header, 6);
+					num = ((uint16_t)header[4] << 8) | header[5];
+					dummy = (uint8_t *)malloc(num);
+					conn_read(fd, num * 6);
+					/* read out and split it away */
+					free(dummy);
+				}
 				break;
 			case 2: /* Bell */
 				break;
@@ -171,17 +183,7 @@ void ex_message_parse(int fd, uint8_t etype, uint16_t len)
 
 			}
 			break;
-		case 2: /* Client Display COnfiguration */
-			{
-
-			}
-			break;
 		case 3: /* Server Event Configuration */
-			{
-
-			}
-			break;
-		case 4: /* Client Event Configuration */
 			{
 
 			}
@@ -191,17 +193,7 @@ void ex_message_parse(int fd, uint8_t etype, uint16_t len)
 
 			}
 			break;
-		case 6: /* Event Mapping Request */
-			{
-
-			}
-			break;
 		case 7: /* Key Event Listing */
-			{
-
-			}
-			break;
-		case 8: /* Key Event Listing Request */
 			{
 
 			}
@@ -211,17 +203,7 @@ void ex_message_parse(int fd, uint8_t etype, uint16_t len)
 
 			}
 			break;
-		case 10: /* Virtual Keyboard Trigger Request */
-			{
-
-			}
-			break;
 		case 11: /* Device Status */
-			{
-
-			}
-			break;
-		case 12: /* Device Status Request */
 			{
 
 			}
@@ -231,32 +213,7 @@ void ex_message_parse(int fd, uint8_t etype, uint16_t len)
 
 			}
 			break;
-		case 14: /* Content Attestation Request */
-			{
-
-			}
-			break;
-		case 16: /* Framebuffer Blocking Notification */
-			{
-
-			}
-			break;
-		case 18: /* Audio Blocking Notification */
-			{
-
-			}
-			break;
-		case 20: /* Touch Event */
-			{
-
-			}
-			break;
 		case 21: /* Framebuffer Alternative Text */
-			{
-
-			}
-			break;
-		case 22: /* Framebuffer Alternative Text Request */
 			{
 
 			}
@@ -330,7 +287,6 @@ void server_cut_text_parse(int fd, uint32_t len)
 	uint8_t *buf;
 	buf = (uint8_t *)malloc(len);
 	conn_read(fd, buf, len);
-	
 	free(buf);
 }
 
