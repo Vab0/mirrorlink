@@ -94,7 +94,7 @@ int conn_read(int fd, uint8_t *buf, uint32_t len)
 	while (len) {
 		ret = select(1, &rfds, 0, &efds, &tv);
 		if (0 == ret) {
-			return 1;
+			return -2;
 		} else if (-1 == ret) {
 			if (EINTR == errno) {
 				continue;
@@ -117,7 +117,7 @@ read_intr:
 							goto read_intr;
 						}
 					} else if (0 == t) {
-						return 0;
+						return -3;
 					} else {
 						len -= r;
                         r += t;
@@ -126,6 +126,7 @@ read_intr:
 			}
 		}
 	}
+    return 0;
 }
 
 int conn_write(int fd, uint8_t *buf, uint32_t len)
@@ -144,7 +145,7 @@ int conn_write(int fd, uint8_t *buf, uint32_t len)
 	while (len) {
 		ret = select(1, 0, &wfds, &efds, &tv);
 		if (0 == ret) {
-			return 1;
+			return -2;
 		} else if (-1 == ret) {
 			if (EINTR == errno) {
 				continue;
@@ -176,5 +177,6 @@ write_intr:
 			}
 		}
 	}
+    return 0;
 }
 
