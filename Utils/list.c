@@ -10,8 +10,6 @@ void list_head_insert(struct list_head *head, struct list_head *v)
 
 void list_head_remove(struct list_head *v)
 {
-	if (v->next != v) {
-		v->prev->next = v->next;
-		v->next->prev = v->prev;
-	}
+	v->prev->next = v->next;
+	v->next->prev = v->prev;
 }
