@@ -107,7 +107,7 @@ int conn_read(int fd, uint8_t *buf, uint32_t len)
 				if (FD_ISSET(fd, &efds)) {
 					return -1;
 				} else if (FD_ISSET(fd, &rfds)) {
-                    int t;
+					int t;
 read_intr:
 					t = read(fd, buf + r, len);
 					if (-1 == t) {
@@ -120,13 +120,13 @@ read_intr:
 						return -3;
 					} else {
 						len -= r;
-                        r += t;
+						r += t;
 					}
 				}
 			}
 		}
 	}
-    return 0;
+	return 0;
 }
 
 int conn_write(int fd, uint8_t *buf, uint32_t len)
@@ -158,7 +158,7 @@ int conn_write(int fd, uint8_t *buf, uint32_t len)
 				if (FD_ISSET(fd, &efds)) {
 					return -1;
 				} else if (FD_ISSET(fd, &wfds)) {
-                    int t;
+					int t;
 write_intr:
 					t = write(fd, buf + r, len);
 					if (t <= 0) {
@@ -171,12 +171,12 @@ write_intr:
 						}
 					} else {
 						len -= t;
-                        r += t;
+						r += t;
 					}
 				}
 			}
 		}
 	}
-    return 0;
+	return 0;
 }
 
