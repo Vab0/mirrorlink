@@ -84,6 +84,7 @@ int conn_read(int fd, uint8_t *buf, uint32_t len)
 	fd_set efds;
 	struct timeval tv;
 	int ret;
+	int r = 0;
 	FD_ZERO(&efds);
 	FD_ZERO(&rfds);
 	FD_SET(fd, &rfds);
@@ -106,19 +107,20 @@ int conn_read(int fd, uint8_t *buf, uint32_t len)
 				if (FD_ISSET(fd, &efds)) {
 					return -1;
 				} else if (FD_ISSET(fd, &rfds)) {
-					int r;
+                    int t;
 read_intr:
-					r = read(fd, buf, len);
-					if (-1 == r) {
+					t = read(fd, buf + r, len);
+					if (-1 == t) {
 						if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
 							continue;
 						} else if (EINTR == errno) {
 							goto read_intr;
 						}
-					} else if (0 == r) {
+					} else if (0 == t) {
 						return 0;
 					} else {
 						len -= r;
+                        r += t;
 					}
 				}
 			}
@@ -132,6 +134,7 @@ int conn_write(int fd, uint8_t *buf, uint32_t len)
 	fd_set efds;
 	struct timeval tv;
 	int ret;
+	int r = 0;
 	FD_ZERO(&efds);
 	FD_ZERO(&wfds);
 	FD_SET(fd, &wfds);
@@ -154,10 +157,10 @@ int conn_write(int fd, uint8_t *buf, uint32_t len)
 				if (FD_ISSET(fd, &efds)) {
 					return -1;
 				} else if (FD_ISSET(fd, &wfds)) {
-					int r;
+                    int t;
 write_intr:
-					r = write(fd, buf, len);
-					if (r <= 0) {
+					t = write(fd, buf + r, len);
+					if (t <= 0) {
 						if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
 							continue;
 						} else if (EINTR == errno) {
@@ -166,7 +169,8 @@ write_intr:
 							return -1;
 						}
 					} else {
-						len -= r;
+						len -= t;
+                        r += t;
 					}
 				}
 			}
