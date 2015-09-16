@@ -135,7 +135,7 @@ void vnc_session_main_task(void *args)
 					conn_read(fd, header, 6);
 					num = ((uint16_t)header[4] << 8) | header[5];
 					dummy = (uint8_t *)malloc(num);
-					conn_read(fd, num * 6);
+					conn_read(fd, dummy, num * 6);
 					/* read out and split it away */
 					free(dummy);
 				}
