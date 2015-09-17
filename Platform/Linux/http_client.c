@@ -45,6 +45,7 @@ struct http_rsp *http_client_send(uint8_t *ip, uint16_t port, struct http_req *r
 		/* parse http response here */
 	}
 	rsp = (struct http_rsp *)malloc(sizeof(*rsp));
+	conn_close(fd);
 	return rsp;
 }
 
