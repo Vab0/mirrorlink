@@ -6,6 +6,7 @@
 
 #include <errno.h>
 #include <string.h>
+#include <stdlib.h>
 
 
 int conn_open(char *ip, uint16_t port)
@@ -127,6 +128,60 @@ read_intr:
 		}
 	}
 	return 0;
+}
+
+int conn_read_all(int fd, uint8_t **buf)
+{
+	fd_set rfds;
+	fd_set efds;
+	struct timeval tv;
+	int ret;
+	FD_ZERO(&efds);
+	FD_ZERO(&rfds);
+	FD_SET(fd, &rfds);
+	FD_SET(fd, &efds);
+	tv.tv_sec = 3;
+	tv.tv_usec = 0;
+	while (1) {
+		ret = select(1, &rfds, 0, &efds, &tv);
+		if (0 == ret) {
+			return -2;
+		} else if (-1 == ret) {
+			if (EINTR == errno) {
+				continue;
+			} else {
+				return -1;
+			}
+		} else {
+			uint32_t i;
+			for (i = 0; i < ret; i++) {
+				if (FD_ISSET(fd, &efds)) {
+					return -1;
+				} else if (FD_ISSET(fd, &rfds)) {
+					int t;
+					int r;
+read_to_end:
+					r  = *buf ? strlen(*buf):0;
+					*buf = (uint8_t *)realloc(*buf, r + 1024);
+					memset(*buf + r, 0, 1024);
+read_intr:
+					t = read(fd, *buf + r, 1023);
+					if (-1 == t) {
+						if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
+							return 0;
+						} else if (EINTR == errno) {
+							goto read_intr;
+						}
+					} else if (0 == t) {
+						return -3;
+					} else {
+						r += t;
+						goto read_to_end;
+					}
+				}
+			}
+		}
+	}
 }
 
 int conn_write(int fd, uint8_t *buf, uint32_t len)
