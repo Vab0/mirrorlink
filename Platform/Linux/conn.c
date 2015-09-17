@@ -8,6 +8,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "Utils/mem.h"
+
 
 int conn_open(char *ip, uint16_t port)
 {
@@ -162,7 +164,10 @@ int conn_read_all(int fd, uint8_t **buf)
 					int r;
 read_to_end:
 					r  = *buf ? strlen(*buf):0;
-					*buf = (uint8_t *)realloc(*buf, r + 1024);
+					safe_append((void **)buf, r + 1024);
+					if (*buf) {
+						return -1;
+					}
 					memset(*buf + r, 0, 1024);
 read_intr:
 					t = read(fd, *buf + r, 1023);

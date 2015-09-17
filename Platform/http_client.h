@@ -9,7 +9,7 @@ struct http_rsp;
 
 extern struct http_req *http_client_make_req(uint8_t method);
 
-extern void http_client_add_header(struct http_req *req, uint8_t *header);
+extern int http_client_add_header(struct http_req *req, uint8_t *header);
 
 extern struct http_rsp *http_client_send(uint8_t *ip, uint16_t port, struct http_req *req);
 

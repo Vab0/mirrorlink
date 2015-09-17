@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "Platform/conn.h"
+#include "Utils/mem.h"
 
 
 static void fb_update_parse(int fd, uint16_t num);
@@ -93,15 +94,12 @@ void vnc_session_main_task(void *args)
 		buf = (uint8_t *)malloc(24);
 		conn_read(fd, buf, 24);
 		len = ntohl(*(uint32_t *)(buf + 20));
-		tmp = (uint8_t *)realloc(buf, 24 + len);
-		if (tmp) {
-			buf = tmp;
-			conn_read(fd, buf + 24, len);
-		} else {
-			free(buf);
+		safe_append((void **)&buf, 24 + len);
+		if (!buf) {
 			conn_close(fd);
 			return;
 		}
+		conn_read(fd, buf + 24, len);
 		/* parse server infomation */
 		free(buf);
 	}
