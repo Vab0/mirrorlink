@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "Platform/conn.h"
 
 struct http_req {
 	uint8_t method;
