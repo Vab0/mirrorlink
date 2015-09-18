@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <arpa/inet.h>
+
 #include "Platform/conn.h"
 #include "Utils/mem.h"
 
@@ -88,7 +90,6 @@ void vnc_session_main_task(void *args)
 	{
 		uint8_t val = 0;
 		uint8_t *buf = 0;
-		uint8_t *tmp = 0;
 		uint32_t len = 0;
 		conn_write(fd, &val, 1);
 		buf = (uint8_t *)malloc(24);
