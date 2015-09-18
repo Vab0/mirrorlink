@@ -164,7 +164,7 @@ int conn_read_all(int fd, uint8_t **buf)
 					int t;
 					int r;
 read_to_end:
-					r  = *buf ? strlen(*buf):0;
+					r  = *buf ? strlen((const char *)*buf):0;
 					safe_append((void **)buf, r + 1024);
 					if (*buf) {
 						return -1;

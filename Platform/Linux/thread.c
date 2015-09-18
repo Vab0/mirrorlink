@@ -61,6 +61,7 @@ void *common_thread_entry(void *args)
 		pthread_setspecific(key, param);
 	}
 	param->func(param->args);
+	return 0;
 }
 
 void thread_post(thread_func f, void *args)

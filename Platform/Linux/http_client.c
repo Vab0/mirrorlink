@@ -26,18 +26,18 @@ struct http_req *http_client_make_req(uint8_t method)
 
 int http_client_add_header(struct http_req *req, uint8_t *header)
 {
-	uint32_t len = strlen(header);
+	uint32_t len = strlen((const char *)header);
 	uint8_t *h = (uint8_t *)malloc(len);
 	safe_append((void **)&(req->header), (req->count + 1) * sizeof(*(req->header)));
 	if (!req->header) {
 		return -1;
 	}
-	strcpy(h, header);
+	strcpy((char *)h, (char *)header);
 	req->header[req->count++] = h;
 	return 0;
 }
 
-struct http_rsp *http_client_send(uint8_t *ip, uint16_t port, struct http_req *req)
+struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 {
 	int fd;
 	uint8_t *wbuf = 0;
