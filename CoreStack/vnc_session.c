@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 
 #include "Platform/conn.h"
-#include "Utils/mem.h"
+#include "Utils/buffer.h"
 
 
 static void fb_update_parse(int fd, uint16_t num);
@@ -89,18 +89,15 @@ void vnc_session_main_task(void *args)
 	/* Initialization Messages */
 	{
 		uint8_t val = 0;
-		uint8_t *buf = 0;
+		struct buffer buf;
+		uint8_t *info = 0;
 		uint32_t len = 0;
 		conn_write(fd, &val, 1);
-		buf = (uint8_t *)malloc(24);
+		buffer_init(&buf, 24);
 		conn_read(fd, buf, 24);
 		len = ntohl(*(uint32_t *)(buf + 20));
-		safe_append((void **)&buf, 24 + len);
-		if (!buf) {
-			conn_close(fd);
-			return;
-		}
-		conn_read(fd, buf + 24, len);
+		buffer_append(&buffer, len);
+		conn_read(fd, buffer->buf + 24, len);
 		/* parse server infomation */
 		free(buf);
 	}

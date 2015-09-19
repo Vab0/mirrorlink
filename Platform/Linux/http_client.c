@@ -4,51 +4,44 @@
 #include <stdio.h>
 
 #include "Platform/conn.h"
-#include "Utils/mem.h"
+#include "Utils/buffer.h"
+#include "Utils/str.h"
 
 struct http_req {
-	char *method;
-	char *path;
-	char **header;
-	uint8_t count;
-	uint32_t blen;
-	char *body;
+	str_t method;
+	str_t path;
+	str_t header;
+	str_t body;
 };
 
 struct http_rsp {
 	uint16_t errcode;
-	char *body;
+	str_t body;
 };
 
 struct http_req *http_client_make_req(char *method, char *path)
 {
 	struct http_req *req = (struct http_req *)calloc(sizeof(*req), 1);
-	req->method = method;
-	safe_str_append(&(req->path), path);
+	req->method = 0;
+	req->path = 0;
+	req->header = 0;
+	req->body = 0;
+	str_append(&(req->method), method);
+	str_append(&(req->path), path);
 	return req;
 }
 
 int http_client_add_header(struct http_req *req, char *header)
 {
-	uint32_t len = strlen((const char *)header);
-	char *h = (char *)malloc(len);
-	safe_append((void **)&(req->header), (req->count + 1) * sizeof(*(req->header)));
-	if (!req->header) {
-		return -1;
-	}
-	strcpy((char *)h, (char *)header);
-	req->header[req->count++] = h;
+	str_append(&(req->header), header);
 	return 0;
 }
 
-int htto_client_set_body(struct http_req *req, char *body)
+int http_client_set_body(struct http_req *req, char *body)
 {
 	if (strcmp(req->method, "GET")) {
-		safe_str_append(&(req->body), body);
-		if (req->body) {
-			req->blen = strlen(body);
-			return 0;
-		}
+		str_append(&(req->body), body);
+		return 0;
 	}
 	return -1;
 }
@@ -57,36 +50,46 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 {
 	int fd;
 	char buf[100];
-	char *wbuf = 0;
-	char *rbuf = 0;
+	str_t wbuf = 0;
+	struct buffer rbuf;
 	uint8_t i;
 	struct http_rsp *rsp;
+	int quit = 0;
+	buffer_init(&rbuf, 0);
 	fd = conn_open(ip, port);
-	safe_append((void **)&wbuf, 100);
-	sprintf(wbuf, "%s %s HTTP/1.0\r\n", req->method, req->path);
-	for (i = 0; i < req->count; i++) {
-		safe_str_append(&wbuf, req->header[i]);
-		safe_str_append(&wbuf, "\r\n");
-		free(req->header[i]);
+	sprintf(buf, "%s %s HTTP/1.0\r\n", req->method, req->path);
+	str_append(&wbuf, buf);
+	if (req->body) {
+		sprintf(buf, "Content-Length:%d\r\n", (int)strlen(req->body));
+		str_append(&(req->header), buf);
 	}
-	safe_str_append(&wbuf, "\r\n");
-	if (!strcmp(req->method, "POST")) {
-		safe_str_append(&wbuf, req->body);
+	if (req->header) {
+		str_append(&wbuf, req->header);
 	}
+	str_append(&wbuf, "\r\n");
+	if (!strcmp(req->method, "POST") && req->body) {
+		str_append(&wbuf, req->body);
+	}
+	free(req->method);
 	free(req->body);
 	free(req->header);
 	free(req->path);
 	free(req);
 	conn_write(fd, wbuf, strlen(wbuf));
-	rsp = (struct http_rsp *)calloc(sizeof(*rsp), 1);
-	while (0 == conn_read_all(fd, &rbuf)) {
-		char *pos = rbuf;
+	printf("request is %s\n", wbuf);
+	rsp = (struct http_rsp *)calloc(1, sizeof(*rsp));
+	while (0 == quit) {
+		char *pos;
 		uint32_t len = 0;
 		int dummy = 0;
-		int sr = sscanf(pos, "HTTP/1.%1d %3d %s\r\n", &dummy, (int *)&(rsp->errcode), buf);
+		int sr;
+		quit = conn_read_all(fd, &rbuf);
+		pos = rbuf.buf;
+		sr = sscanf(pos, "HTTP/1.%1d %3d %s\r\n", &dummy, (int *)&(rsp->errcode), buf);
 		if (sr < 3) {
 			continue;
 		}
+		printf("error code is %d\n", rsp->errcode);
 		pos = strstr(pos, "Content-Length:");
 		sr = sscanf(pos, "Content-Length: %d\r\n", &len);
 		if (sr < 1) {
@@ -94,9 +97,10 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 		}
 		if (len > 0) {
 			pos = strstr(pos, "\r\n\r\n") + 4;
+			printf("response body is %s\n", pos);
 			if (strlen(pos) >= len) {
 				pos[len] = 0;
-				safe_str_append(&(rsp->body), pos);
+				str_append(&(rsp->body), pos);
 				break;
 			}
 		} else {
@@ -108,7 +112,7 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 		rsp = 0;
 	}
 	free(wbuf);
-	free(rbuf);
+	buffer_clear(&rbuf);
 	conn_close(fd);
 	return rsp;
 }

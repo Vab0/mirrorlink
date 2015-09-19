@@ -9,7 +9,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "Utils/mem.h"
+#include "Utils/buffer.h"
 
 
 int conn_open(char *ip, uint16_t port)
@@ -133,7 +133,7 @@ read_intr:
 	return 0;
 }
 
-int conn_read_all(int fd, char **buf)
+int conn_read_all(int fd, struct buffer *buf)
 {
 	fd_set rfds;
 	fd_set efds;
@@ -164,14 +164,10 @@ int conn_read_all(int fd, char **buf)
 					int t;
 					int r;
 read_to_end:
-					r  = *buf ? strlen((const char *)*buf):0;
-					safe_append((void **)buf, r + 1024);
-					if (0 == *buf) {
-						return -1;
-					}
-					memset(*buf + r, 0, 1024);
+					r = buf->size;
+					buffer_append(buf, 1024);
 read_intr:
-					t = read(fd, *buf + r, 1023);
+					t = read(fd, buf->buf + r, 1024);
 					if (-1 == t) {
 						if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
 							return 0;
