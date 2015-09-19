@@ -21,7 +21,7 @@ void safe_str_append(char **str, const char *con)
 	int len = strlen(con);
 	int l = *str ? strlen(*str):0;
 	if (len + l > 0) {
-		safe_append(str, len + l);
+		safe_append((void **)str, len + l);
 		strcpy(*str + l, con);
 	}
 }
