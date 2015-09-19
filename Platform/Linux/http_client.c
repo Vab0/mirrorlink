@@ -102,6 +102,8 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 		free(rsp);
 		rsp = 0;
 	}
+	free(wbuf);
+	free(rbuf);
 	conn_close(fd);
 	return rsp;
 }
