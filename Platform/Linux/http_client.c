@@ -1,33 +1,37 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+
 #include "Platform/conn.h"
 #include "Utils/mem.h"
 
 struct http_req {
-	uint8_t method;
-	uint8_t **header;
+	char *method;
+	char *path;
+	char **header;
 	uint8_t count;
+	uint32_t blen;
+	char *body;
 };
 
 struct http_rsp {
 	uint16_t errcode;
-	uint8_t *body;
+	char *body;
 };
 
-struct http_req *http_client_make_req(uint8_t method)
+struct http_req *http_client_make_req(char *method, char *path)
 {
-	struct http_req *req = (struct http_req *)malloc(sizeof(*req));
+	struct http_req *req = (struct http_req *)calloc(sizeof(*req), 1);
 	req->method = method;
-	req->header = 0;
-	req->count = 0;
+	safe_str_append(&(req->path), path);
 	return req;
 }
 
-int http_client_add_header(struct http_req *req, uint8_t *header)
+int http_client_add_header(struct http_req *req, char *header)
 {
 	uint32_t len = strlen((const char *)header);
-	uint8_t *h = (uint8_t *)malloc(len);
+	char *h = (char *)malloc(len);
 	safe_append((void **)&(req->header), (req->count + 1) * sizeof(*(req->header)));
 	if (!req->header) {
 		return -1;
@@ -37,32 +41,69 @@ int http_client_add_header(struct http_req *req, uint8_t *header)
 	return 0;
 }
 
+int htto_client_set_body(struct http_req *req, char *body)
+{
+	if (strcmp(req->method, "GET")) {
+		safe_str_append(&(req->body), body);
+		if (req->body) {
+			req->blen = strlen(body);
+			return 0;
+		}
+	}
+	return -1;
+}
+
 struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 {
 	int fd;
-	uint8_t *wbuf = 0;
-	uint32_t wlen = 0;
-	uint8_t *rbuf = 0;
-	int ret = 0;
+	char buf[100];
+	char *wbuf = 0;
+	char *rbuf = 0;
+	uint8_t i;
 	struct http_rsp *rsp;
 	fd = conn_open(ip, port);
-	conn_write(fd, wbuf, wlen);
-	while (0 != conn_read_all(fd, &rbuf)) {
-		/* parse http response here */
+	safe_append((void **)&wbuf, 100);
+	sprintf(wbuf, "%s %s HTTP/1.0\r\nHost: %s:%d\r\n",
+		req->method, req->path, ip, port);
+	for (i = 0; i < req->count; i++) {
+		safe_str_append(&wbuf, req->header[i]);
+		safe_str_append(&wbuf, "\r\n");
+		free(req->header[i]);
 	}
-	rsp = (struct http_rsp *)malloc(sizeof(*rsp));
+	if (!strcmp(req->method, "POST")) {
+		safe_str_append(&wbuf, req->body);
+	}
+	free(req->body);
+	free(req->header);
+	free(req->path);
+	free(req);
+	req = 0;
+	safe_str_append(&wbuf, "\r\n");
+	conn_write(fd, wbuf, strlen(wbuf));
+	rsp = (struct http_rsp *)calloc(sizeof(*rsp), 1);
+	while (0 != conn_read_all(fd, &rbuf)) {
+		char *pos = rbuf;
+		uint32_t len = 0;
+		if (sscanf(pos, "HTTP/1.0 %3d %s\r\n", (int *)&(rsp->errcode), buf) < 2) {
+			continue;
+		}
+		pos = strstr(pos, "Content-Length:");
+		if (sscanf(pos, "Content-Length: %d\n\n", &len) < 1) {
+			continue;
+		}
+		pos = strstr(pos, "\r\n\r\n") + 4;
+		if (strlen(pos) >= len) {
+			pos[len] = 0;
+			safe_str_append(&(rsp->body), pos);
+			break;
+		}
+	}
+	if (0 == rsp->body) {
+		free(rsp);
+		rsp = 0;
+	}
 	conn_close(fd);
 	return rsp;
-}
-
-void http_client_free_req(struct http_req *req)
-{
-	uint8_t i;
-	for (i = 0; i < req->count; i++) {
-		free(req->header[i]);
-	};
-	free(req->header);
-	free(req);
 }
 
 uint16_t http_client_get_errcode(struct http_rsp *rsp)
@@ -70,7 +111,7 @@ uint16_t http_client_get_errcode(struct http_rsp *rsp)
 	return rsp->errcode;
 }
 
-uint8_t *http_client_get_body(struct http_rsp *rsp)
+char *http_client_get_body(struct http_rsp *rsp)
 {
 	return rsp->body;
 }

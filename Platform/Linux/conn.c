@@ -82,7 +82,7 @@ void conn_close(int fd)
 	close(fd);
 }
 
-int conn_read(int fd, uint8_t *buf, uint32_t len)
+int conn_read(int fd, char *buf, uint32_t len)
 {
 	fd_set rfds;
 	fd_set efds;
@@ -133,7 +133,7 @@ read_intr:
 	return 0;
 }
 
-int conn_read_all(int fd, uint8_t **buf)
+int conn_read_all(int fd, char **buf)
 {
 	fd_set rfds;
 	fd_set efds;
@@ -190,7 +190,7 @@ read_intr:
 	}
 }
 
-int conn_write(int fd, uint8_t *buf, uint32_t len)
+int conn_write(int fd, char *buf, uint32_t len)
 {
 	fd_set wfds;
 	fd_set efds;
