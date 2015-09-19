@@ -37,7 +37,7 @@ connect_intr:
 			tv.tv_sec = 3;
 			tv.tv_usec = 0;
 select_intr:
-			ret = select(1, 0, &wfds, &efds, &tv);
+			ret = select(fd + 1, 0, &wfds, &efds, &tv);
 			if (0 == ret) {
 				goto fail_ret;
 			} else if (-1 == ret) {
@@ -96,7 +96,7 @@ int conn_read(int fd, char *buf, uint32_t len)
 	tv.tv_sec = 3;
 	tv.tv_usec = 0;
 	while (len) {
-		ret = select(1, &rfds, 0, &efds, &tv);
+		ret = select(fd + 1, &rfds, 0, &efds, &tv);
 		if (0 == ret) {
 			return -2;
 		} else if (-1 == ret) {
@@ -146,7 +146,7 @@ int conn_read_all(int fd, char **buf)
 	tv.tv_sec = 3;
 	tv.tv_usec = 0;
 	while (1) {
-		ret = select(1, &rfds, 0, &efds, &tv);
+		ret = select(fd + 1, &rfds, 0, &efds, &tv);
 		if (0 == ret) {
 			return -2;
 		} else if (-1 == ret) {
@@ -166,7 +166,7 @@ int conn_read_all(int fd, char **buf)
 read_to_end:
 					r  = *buf ? strlen((const char *)*buf):0;
 					safe_append((void **)buf, r + 1024);
-					if (*buf) {
+					if (0 == *buf) {
 						return -1;
 					}
 					memset(*buf + r, 0, 1024);
@@ -204,7 +204,7 @@ int conn_write(int fd, char *buf, uint32_t len)
 	tv.tv_sec = 3;
 	tv.tv_usec = 0;
 	while (len) {
-		ret = select(1, 0, &wfds, &efds, &tv);
+		ret = select(fd + 1, 0, &wfds, &efds, &tv);
 		if (0 == ret) {
 			return -2;
 		} else if (-1 == ret) {

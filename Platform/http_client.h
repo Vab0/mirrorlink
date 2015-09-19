@@ -11,7 +11,7 @@ extern struct http_req *http_client_make_req(char *method, char *path);
 
 extern int http_client_add_header(struct http_req *req, char *header);
 
-extern int htto_client_set_body(struct http_req *req, uint8_t *body);
+extern int http_client_set_body(struct http_req *req, uint8_t *body);
 
 extern struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req);
 

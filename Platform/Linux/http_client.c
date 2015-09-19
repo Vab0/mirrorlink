@@ -63,13 +63,13 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 	struct http_rsp *rsp;
 	fd = conn_open(ip, port);
 	safe_append((void **)&wbuf, 100);
-	sprintf(wbuf, "%s %s HTTP/1.0\r\nHost: %s:%d\r\n",
-		req->method, req->path, ip, port);
+	sprintf(wbuf, "%s %s HTTP/1.0\r\n", req->method, req->path);
 	for (i = 0; i < req->count; i++) {
 		safe_str_append(&wbuf, req->header[i]);
 		safe_str_append(&wbuf, "\r\n");
 		free(req->header[i]);
 	}
+	safe_str_append(&wbuf, "\r\n");
 	if (!strcmp(req->method, "POST")) {
 		safe_str_append(&wbuf, req->body);
 	}
@@ -77,28 +77,33 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 	free(req->header);
 	free(req->path);
 	free(req);
-	req = 0;
-	safe_str_append(&wbuf, "\r\n");
 	conn_write(fd, wbuf, strlen(wbuf));
 	rsp = (struct http_rsp *)calloc(sizeof(*rsp), 1);
-	while (0 != conn_read_all(fd, &rbuf)) {
+	while (0 == conn_read_all(fd, &rbuf)) {
 		char *pos = rbuf;
 		uint32_t len = 0;
-		if (sscanf(pos, "HTTP/1.0 %3d %s\r\n", (int *)&(rsp->errcode), buf) < 2) {
+		int dummy = 0;
+		int sr = sscanf(pos, "HTTP/1.%1d %3d %s\r\n", &dummy, (int *)&(rsp->errcode), buf);
+		if (sr < 3) {
 			continue;
 		}
 		pos = strstr(pos, "Content-Length:");
-		if (sscanf(pos, "Content-Length: %d\n\n", &len) < 1) {
+		sr = sscanf(pos, "Content-Length: %d\r\n", &len);
+		if (sr < 1) {
 			continue;
 		}
-		pos = strstr(pos, "\r\n\r\n") + 4;
-		if (strlen(pos) >= len) {
-			pos[len] = 0;
-			safe_str_append(&(rsp->body), pos);
+		if (len > 0) {
+			pos = strstr(pos, "\r\n\r\n") + 4;
+			if (strlen(pos) >= len) {
+				pos[len] = 0;
+				safe_str_append(&(rsp->body), pos);
+				break;
+			}
+		} else {
 			break;
 		}
 	}
-	if (0 == rsp->body) {
+	if (0 == rsp->errcode) {
 		free(rsp);
 		rsp = 0;
 	}
