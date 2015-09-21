@@ -44,7 +44,7 @@ int http_client_set_body(struct http_req *req, char *body)
 struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 {
 	int fd;
-	char buf[100];
+	char buf[100] = {0};
 	str_t wbuf = 0;
 	struct buffer rbuf;
 	uint8_t i;
