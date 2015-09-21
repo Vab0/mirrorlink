@@ -11,6 +11,7 @@ void str_append(str_t *str, char *tail)
 	char *buf = calloc(1, lo + ln + 1);
 	if (lo) {
 		strcpy(buf, *str);
+		free(*str);
 	}
 	strcpy(buf + lo, tail);
 	*str = buf;
