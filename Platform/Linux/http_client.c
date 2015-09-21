@@ -21,20 +21,15 @@ struct http_rsp {
 
 struct http_req *http_client_make_req(char *method, char *path)
 {
-	struct http_req *req = (struct http_req *)calloc(sizeof(*req), 1);
-	req->method = 0;
-	req->path = 0;
-	req->header = 0;
-	req->body = 0;
+	struct http_req *req = (struct http_req *)calloc(1, sizeof(*req));
 	str_append(&(req->method), method);
 	str_append(&(req->path), path);
 	return req;
 }
 
-int http_client_add_header(struct http_req *req, char *header)
+void http_client_add_header(struct http_req *req, char *header)
 {
 	str_append(&(req->header), header);
-	return 0;
 }
 
 int http_client_set_body(struct http_req *req, char *body)
@@ -124,6 +119,8 @@ uint16_t http_client_get_errcode(struct http_rsp *rsp)
 {
 	if (rsp) {
 		return rsp->errcode;
+	} else {
+		return 0;
 	}
 }
 
@@ -131,6 +128,8 @@ char *http_client_get_body(struct http_rsp *rsp)
 {
 	if (rsp) {
 		return rsp->body;
+	} else {
+		return 0;
 	}
 }
 
