@@ -34,7 +34,7 @@ connect_intr:
 			FD_ZERO(&wfds);
 			FD_SET(fd, &wfds);
 			FD_SET(fd, &efds);
-			tv.tv_sec = 3;
+			tv.tv_sec = 1;
 			tv.tv_usec = 0;
 select_intr:
 			ret = select(fd + 1, 0, &wfds, &efds, &tv);
@@ -93,7 +93,7 @@ int conn_read(int fd, char *buf, uint32_t len)
 	FD_ZERO(&rfds);
 	FD_SET(fd, &rfds);
 	FD_SET(fd, &efds);
-	tv.tv_sec = 3;
+	tv.tv_sec = 1;
 	tv.tv_usec = 0;
 	while (len) {
 		ret = select(fd + 1, &rfds, 0, &efds, &tv);
@@ -143,7 +143,7 @@ int conn_read_all(int fd, struct buffer *buf)
 	FD_ZERO(&rfds);
 	FD_SET(fd, &rfds);
 	FD_SET(fd, &efds);
-	tv.tv_sec = 3;
+	tv.tv_sec = 1;
 	tv.tv_usec = 0;
 	while (1) {
 		ret = select(fd + 1, &rfds, 0, &efds, &tv);
@@ -196,7 +196,7 @@ int conn_write(int fd, char *buf, uint32_t len)
 	FD_ZERO(&wfds);
 	FD_SET(fd, &wfds);
 	FD_SET(fd, &efds);
-	tv.tv_sec = 3;
+	tv.tv_sec = 1;
 	tv.tv_usec = 0;
 	while (len) {
 		ret = select(fd + 1, 0, &wfds, &efds, &tv);
