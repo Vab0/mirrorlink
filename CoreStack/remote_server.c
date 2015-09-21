@@ -96,9 +96,15 @@ struct remote_server *remote_server_create(char *ip, uint16_t port, char *path)
 
 int remote_server_get_application_list(struct remote_server *server)
 {
-	struct http_req *rq = http_client_make_req("POST", server->sinfo[SERVICE_TYPE_APP].curl);
+	struct http_req *rq = 0;
 	struct http_rsp *rp = 0;
 	char buf[100];
+
+	if (!server) {
+		return -1;
+	}
+	
+	rq = http_client_make_req("POST", server->sinfo[SERVICE_TYPE_APP].curl);
 	sprintf(buf, "HOST: %s:%d\r\n", server->ip, server->port);
 	http_client_add_header(rq, buf);
 	http_client_add_header(rq, "CONTENT-TYPE: text/xml; charset=\"utf-8\"\r\n");
@@ -123,6 +129,9 @@ int remote_server_get_application_list(struct remote_server *server)
 void remote_server_destory(struct remote_server *server)
 {
 	uint8_t i;
+	if (!server) {
+		return;
+	}
 	free(server->ip);
 	free(server->uuid);
 	for (i = 0; i < SERVICE_TYPE_MAX; i++) {

@@ -84,9 +84,12 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 		int dummy = 0;
 		int sr;
 		quit = conn_read_all(fd, &rbuf);
+		if (!rbuf.size) {
+			break;
+		}
 		pos = rbuf.buf;
-		sr = sscanf(pos, "HTTP/1.%1d %3d %s\r\n", &dummy, (int *)&(rsp->errcode), buf);
-		if (sr < 3) {
+		sr = sscanf(pos, "HTTP/1.%1d %3d %*s\r\n", &dummy, (int *)&(rsp->errcode));
+		if (sr < 2) {
 			continue;
 		}
 		printf("error code is %d\n", rsp->errcode);
@@ -119,17 +122,23 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 
 uint16_t http_client_get_errcode(struct http_rsp *rsp)
 {
-	return rsp->errcode;
+	if (rsp) {
+		return rsp->errcode;
+	}
 }
 
 char *http_client_get_body(struct http_rsp *rsp)
 {
-	return rsp->body;
+	if (rsp) {
+		return rsp->body;
+	}
 }
 
 void http_client_free_rsp(struct http_rsp *rsp)
 {
-	free(rsp->body);
+	if (rsp) {
+		free(rsp->body);
+	}
 	free(rsp);
 }
 
