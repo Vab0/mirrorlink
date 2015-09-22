@@ -80,7 +80,7 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 		int sr;
 		quit = conn_read_all(fd, &rbuf);
 		if (!rbuf.size) {
-			break;
+			continue;
 		}
 		pos = rbuf.buf;
 		sr = sscanf(pos, "HTTP/1.%1d %3d %*s\r\n", &dummy, (int *)&(rsp->errcode));

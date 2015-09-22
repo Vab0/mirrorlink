@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 	}
 	server = remote_server_create(ip, port, path);
 #else
-	server = remote_server_create("192.168.1.8", 45000, "/616546a3-e346-4c46-b304-4a1d26e571df.xml");
+	server = remote_server_create("172.26.176.168", 45000, "/81db4fed-6235-4211-a762-87d3985ac8dc.xml");
 #endif
 	remote_server_get_application_list(server);
 	remote_server_destory(server);
