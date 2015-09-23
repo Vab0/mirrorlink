@@ -6,6 +6,7 @@
 struct buffer {
 	uint8_t *buf;
 	uint32_t size;
+	uint32_t len;
 };
 
 extern void buffer_init(struct buffer *buf, uint32_t size);

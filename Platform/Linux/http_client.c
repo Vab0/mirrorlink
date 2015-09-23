@@ -78,15 +78,11 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 		uint32_t len = 0;
 		int dummy = 0;
 		int sr;
-		if (rbuf.size) {
-			uint32_t i;
-			for (i = rbuf.size; (rbuf.size != 0) && (rbuf.buf[i] != 0); rbuf.size--, i--);
-		}
 		quit = conn_read_all(fd, &rbuf);
-		if (!rbuf.size) {
+		if (!rbuf.len) {
 			continue;
 		}
-		buffer_append(&rbuf, rbuf.size + 1);
+		buffer_append(&rbuf, 1);
 		pos = rbuf.buf;
 		printf("response is %s\n", pos);
 		sr = sscanf(pos, "HTTP/1.%1d %3d %*s\r\n", &dummy, (int *)&(rsp->errcode));

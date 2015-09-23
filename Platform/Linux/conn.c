@@ -160,12 +160,11 @@ int conn_read_all(int fd, struct buffer *buf)
 				if (FD_ISSET(fd, &efds)) {
 					return -1;
 				} else if (FD_ISSET(fd, &rfds)) {
-					int t = 1024;
-					int r = 0;
+					int t;
 read_to_end:
-					buffer_append(buf, t);
+					buffer_append(buf, 1024);
 read_intr:
-					t = read(fd, buf->buf + r, 1024);
+					t = read(fd, buf->buf + buf->len, 1024);
 					if (-1 == t) {
 						if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
 							return 0;
@@ -175,7 +174,7 @@ read_intr:
 					} else if (0 == t) {
 						return -3;
 					} else {
-						r += t;
+						buf->len += t;
 						goto read_to_end;
 					}
 				}
