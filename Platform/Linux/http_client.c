@@ -71,7 +71,6 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 	free(req->path);
 	free(req);
 	conn_write(fd, wbuf, strlen(wbuf));
-	printf("request is %s\n", wbuf);
 	rsp = (struct http_rsp *)calloc(1, sizeof(*rsp));
 	while (0 == quit) {
 		char *pos;
@@ -84,12 +83,10 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 		}
 		buffer_append(&rbuf, 1);
 		pos = rbuf.buf;
-		printf("response is %s\n", pos);
 		sr = sscanf(pos, "HTTP/1.%1d %3d %*s\r\n", &dummy, (int *)&(rsp->errcode));
 		if (sr < 2) {
 			continue;
 		}
-		printf("error code is %d\n", rsp->errcode);
 		pos = strstr(pos, "Content-Length:");
 		sr = sscanf(pos, "Content-Length: %d\r\n", &len);
 		if (sr < 1) {
