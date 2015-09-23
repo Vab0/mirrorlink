@@ -24,11 +24,11 @@ void buffer_clear(struct buffer *buf)
 void buffer_append(struct buffer *buf, int size)
 {
 	if (size + buf->len > buf->size) {
-		uint8_t *b = (uint8_t *)calloc(1, (size + buf->size) * sizeof(*b));
-		memcpy(b, buf->buf, buf->size);
+		uint8_t *b = (uint8_t *)calloc(1, (size + buf->len) * sizeof(*b));
+		memcpy(b, buf->buf, buf->len);
 		free(buf->buf);
 		buf->buf = b;
-		buf->size += size;
+		buf->size = size + buf->len;
 	}
 }
 
