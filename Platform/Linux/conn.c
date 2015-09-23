@@ -29,7 +29,6 @@ int conn_open(char *ip, uint16_t port)
 			fd_set efds;
 			struct timeval tv;
 			int ret;
-connect_intr:
 			FD_ZERO(&efds);
 			FD_ZERO(&wfds);
 			FD_SET(fd, &wfds);
@@ -67,7 +66,7 @@ select_intr:
 				}
 			}
 		} else if (EINTR == errno) {
-			goto connect_intr;
+			goto select_intr;
 		}
 	} else {
 		return fd;
