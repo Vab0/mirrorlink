@@ -23,13 +23,13 @@ int conn_open(char *ip, uint16_t port)
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = inet_addr(ip);
-connect_intr:
 	if (-1 == connect(fd, (struct sockaddr *)&addr, sizeof(struct sockaddr))) {
 		if (EINPROGRESS == errno) {
 			fd_set wfds;
 			fd_set efds;
 			struct timeval tv;
 			int ret;
+connect_intr:
 			FD_ZERO(&efds);
 			FD_ZERO(&wfds);
 			FD_SET(fd, &wfds);
