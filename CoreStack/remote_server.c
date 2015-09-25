@@ -64,13 +64,13 @@ struct remote_server *remote_server_create(char *ip, uint16_t port, char *path)
 										printf("service type is %s\n", xmlNodeGetContent(c4));
 										xmlChar *stype = xmlNodeGetContent(c4);
 										if (xmlStrEqual(stype,
-											xmlCharStrdup("urn:schemas-upnp-org:service:TmApplicationServer:1"))) {
+													xmlCharStrdup("urn:schemas-upnp-org:service:TmApplicationServer:1"))) {
 											type = SERVICE_TYPE_APP;
 										} else if (xmlStrEqual(stype,
-											xmlCharStrdup("urn:schemas-upnp-org:service:TmClientProfile:1"))) {
+													xmlCharStrdup("urn:schemas-upnp-org:service:TmClientProfile:1"))) {
 											type = SERVICE_TYPE_CLP;
 										} else if (xmlStrEqual(stype,
-											xmlCharStrdup("urn:schemas-upnp-org:service:TmNotificationServer:1"))) {
+													xmlCharStrdup("urn:schemas-upnp-org:service:TmNotificationServer:1"))) {
 											type = SERVICE_TYPE_NOT;
 										}
 									} else if (xmlStrEqual(c4->name, xmlCharStrdup("SCPDURL"))) {
@@ -105,7 +105,7 @@ uint16_t remote_server_get_application_list(struct remote_server *server, uint32
 	if (!server) {
 		return 0;
 	}
-	
+
 	sprintf(buf, "<AppListingFilter>%s</AppListingFilter><ProfileID>%8x</ProfileID>", filter, pid);
 	return remote_server_invoke_action(server, SERVICE_TYPE_APP, "GetApplicationList", buf);
 }
@@ -121,13 +121,13 @@ uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t styp
 	switch (stype) {
 		case SERVICE_TYPE_APP:
 			service = "TmApplicationServer:1";
-		break;
+			break;
 		case SERVICE_TYPE_CLP:
 			service = "TmClientProfileServer:1";
-		break;
+			break;
 		case SERVICE_TYPE_NOT:
 			service = "TmNotificationServer:1";
-		break;
+			break;
 	}
 	rq = http_client_make_req("POST", server->sinfo[SERVICE_TYPE_APP].curl);
 	sprintf(buf, "HOST: %s:%d\r\n", server->ip, server->port);
@@ -151,9 +151,9 @@ uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t styp
 	if (rp) {
 		switch (http_client_get_errcode(rp)) {
 			case 200:
-			break;
+				break;
 			default:
-			break;
+				break;
 		}
 	}
 	http_client_free_rsp(rp);
