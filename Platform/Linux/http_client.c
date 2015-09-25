@@ -97,7 +97,7 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 		}
 		if (len > 0) {
 			pos = strstr(pos, "\r\n\r\n") + 4;
-			if (4 == pos) {
+			if ((char *)4 == pos) {
 				continue;
 			}
 			if (strlen(pos) >= len) {
