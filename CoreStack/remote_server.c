@@ -29,6 +29,8 @@ struct remote_server {
 	struct service_info sinfo[SERVICE_TYPE_MAX];
 };
 
+static uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t stype, char *action, char *args);
+
 struct remote_server *remote_server_create(char *ip, uint16_t port, char *path)
 {
 	struct http_req *rq = http_client_make_req("GET", path);
@@ -94,36 +96,67 @@ struct remote_server *remote_server_create(char *ip, uint16_t port, char *path)
 	return server;
 }
 
-int remote_server_get_application_list(struct remote_server *server)
+uint16_t remote_server_get_application_list(struct remote_server *server, uint32_t pid, char *filter)
 {
 	struct http_req *rq = 0;
 	struct http_rsp *rp = 0;
 	char buf[100];
 
 	if (!server) {
-		return -1;
+		return 0;
 	}
 	
+	sprintf(buf, "<AppListingFilter>%s</AppListingFilter><ProfileID>%8x</ProfileID>", filter, pid);
+	return remote_server_invoke_action(server, SERVICE_TYPE_APP, "GetApplicationList", buf);
+}
+
+uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t stype, char *action, char *args)
+{
+	struct http_req *rq = 0;
+	struct http_rsp *rp = 0;
+	char buf[200];
+	str_t req = 0;
+	char *service = 0;
+
+	switch (stype) {
+		case SERVICE_TYPE_APP:
+			service = "TmApplicationServer:1";
+		break;
+		case SERVICE_TYPE_CLP:
+			service = "TmClientProfileServer:1";
+		break;
+		case SERVICE_TYPE_NOT:
+			service = "TmNotificationServer:1";
+		break;
+	}
 	rq = http_client_make_req("POST", server->sinfo[SERVICE_TYPE_APP].curl);
 	sprintf(buf, "HOST: %s:%d\r\n", server->ip, server->port);
 	http_client_add_header(rq, buf);
 	http_client_add_header(rq, "CONTENT-TYPE: text/xml; charset=\"utf-8\"\r\n");
-	http_client_add_header(rq, "SOAPACTION: \"urn:schemas-upnp-org:service:TmApplicationServer:1#GetApplicationList\"\r\n");
-	http_client_set_body(rq, "<?xml version=\"1.0\"?>"
+	sprintf(buf, "SOAPACTION: \"urn:schemas-upnp-org:service:%s#%s\"\r\n", service, action);
+	http_client_add_header(rq, buf);
+	sprintf(buf, "<?xml version=\"1.0\"?>"
 			"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
 			"<s:Body>"
-			"<u:GetApplicationList xmlns:u=\"urn:schemas-upnp-org:service:TmApplicationServer:1\">"
-			"<AppListingFilter>*</AppListingFilter>"
-			"<ProfileID>0</ProfileID>"
-			"</u:GetApplicationList>"
+			"<u:%s xmlns:u=\"urn:schemas-upnp-org:service:%s\">", action, service);
+	str_append(&req, buf);
+	str_append(&req, args);
+	sprintf(buf, "</u:%s>"
 			"</s:Body>"
-			"</s:Envelope>");
+			"</s:Envelope>", action);
+	str_append(&req, buf);
+	http_client_set_body(rq, req);
+	free(req);
 	rp = http_client_send(server->ip, server->port, rq);
-	if (rp && (200 == http_client_get_errcode(rp))) {
-		printf("get application list successfully.\n");
+	if (rp) {
+		switch (http_client_get_errcode(rp)) {
+			case 200:
+			break;
+			default:
+			break;
+		}
 	}
 	http_client_free_rsp(rp);
-	return 0;
 }
 
 void remote_server_destory(struct remote_server *server)
