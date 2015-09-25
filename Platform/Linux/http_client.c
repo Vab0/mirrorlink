@@ -88,12 +88,18 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 			continue;
 		}
 		pos = strstr(pos, "Content-Length:");
+		if (0 == pos) {
+			continue;
+		}
 		sr = sscanf(pos, "Content-Length: %d\r\n", &len);
 		if (sr < 1) {
 			continue;
 		}
 		if (len > 0) {
 			pos = strstr(pos, "\r\n\r\n") + 4;
+			if (4 == pos) {
+				continue;
+			}
 			if (strlen(pos) >= len) {
 				str_append(&(rsp->body), pos);
 				break;
