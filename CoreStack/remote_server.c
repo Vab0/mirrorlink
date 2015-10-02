@@ -110,6 +110,20 @@ uint16_t remote_server_get_application_list(struct remote_server *server, uint32
 	return remote_server_invoke_action(server, SERVICE_TYPE_APP, "GetApplicationList", buf);
 }
 
+uint16_t remote_server_launch_application(struct remote_server *server, uint32_t appid, uint32_t pid)
+{
+	struct http_req *rq = 0;
+	struct http_rsp *rp = 0;
+	char buf[100];
+
+	if (!server) {
+		return 0;
+	}
+
+	sprintf(buf, "<AppID>0x%x</AppID><ProfileID>0x%x</ProfileID>", appid, pid);
+	return remote_server_invoke_action(server, SERVICE_TYPE_APP, "GetApplicationList", buf);
+}
+
 uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t stype, char *action, char *args)
 {
 	struct http_req *rq = 0;
