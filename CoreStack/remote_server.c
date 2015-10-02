@@ -10,6 +10,12 @@
 #include "Utils/str.h"
 
 enum {
+	ACTION_GET_APPLICATION_LIST,
+	ACTION_LAUNCH_APPLICATION,
+	ACTION_MAX
+};
+
+enum {
 	SERVICE_TYPE_APP,
 	SERVICE_TYPE_CLP,
 	SERVICE_TYPE_NOT,
@@ -29,7 +35,23 @@ struct remote_server {
 	struct service_info sinfo[SERVICE_TYPE_MAX];
 };
 
-static uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t stype, char *action, char *args);
+typedef uint8_t (*action_parser)(struct remote_server *server, char *content, str_t *str);
+
+struct action {
+	uint32_t stype;
+	char *name;
+	action_parser handler;
+};
+
+static uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t stype, char *action, char *args, action_parser handler);
+static uint8_t get_application_list_parse(struct remote_server *server, char *content, str_t *str);
+static uint8_t launch_application_parse(struct remote_server *server, char *content, str_t *str);
+
+static struct action action_map[ACTION_MAX] = {
+	{SERVICE_TYPE_APP, "GetApplicationList", get_application_list_parse},
+	{SERVICE_TYPE_APP, "LaunchApplication", launch_application_parse}
+};
+
 
 struct remote_server *remote_server_create(char *ip, uint16_t port, char *path)
 {
@@ -107,7 +129,7 @@ uint16_t remote_server_get_application_list(struct remote_server *server, uint32
 	}
 
 	sprintf(buf, "<AppListingFilter>%s</AppListingFilter><ProfileID>0x%x</ProfileID>", filter, pid);
-	return remote_server_invoke_action(server, SERVICE_TYPE_APP, "GetApplicationList", buf);
+	return remote_server_invoke_action(server, action_map[ACTION_GET_APPLICATION_LIST].stype, action_map[ACTION_GET_APPLICATION_LIST].name, buf, action_map[ACTION_GET_APPLICATION_LIST].handler);
 }
 
 uint16_t remote_server_launch_application(struct remote_server *server, uint32_t appid, uint32_t pid)
@@ -121,10 +143,10 @@ uint16_t remote_server_launch_application(struct remote_server *server, uint32_t
 	}
 
 	sprintf(buf, "<AppID>0x%x</AppID><ProfileID>0x%x</ProfileID>", appid, pid);
-	return remote_server_invoke_action(server, SERVICE_TYPE_APP, "GetApplicationList", buf);
+	return remote_server_invoke_action(server, action_map[ACTION_LAUNCH_APPLICATION].stype, action_map[ACTION_LAUNCH_APPLICATION].name, buf, action_map[ACTION_LAUNCH_APPLICATION].handler);
 }
 
-uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t stype, char *action, char *args)
+uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t stype, char *action, char *args, action_parser handler)
 {
 	struct http_req *rq = 0;
 	struct http_rsp *rp = 0;
@@ -165,7 +187,11 @@ uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t styp
 	if (rp) {
 		switch (http_client_get_errcode(rp)) {
 			case 200:
-				printf("action invoke successfully.\n");
+				{
+					str_t str = 0;
+					printf("action invoke successfully.\n");
+					handler(server, http_client_get_body(rp), &str);
+				}
 				break;
 			default:
 				printf("action invoke error %d\n", http_client_get_errcode(rp));
@@ -174,6 +200,17 @@ uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t styp
 	}
 	http_client_free_rsp(rp);
 }
+
+uint8_t get_application_list_parse(struct remote_server *server, char *content, str_t *str)
+{
+	return 0;
+}
+
+uint8_t launch_application_parse(struct remote_server *server, char *content, str_t *str)
+{
+	return 0;
+}
+
 
 void remote_server_destory(struct remote_server *server)
 {
