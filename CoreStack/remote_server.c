@@ -106,7 +106,7 @@ uint16_t remote_server_get_application_list(struct remote_server *server, uint32
 		return 0;
 	}
 
-	sprintf(buf, "<AppListingFilter>%s</AppListingFilter><ProfileID>%8x</ProfileID>", filter, pid);
+	sprintf(buf, "<AppListingFilter>%s</AppListingFilter><ProfileID>0x%x</ProfileID>", filter, pid);
 	return remote_server_invoke_action(server, SERVICE_TYPE_APP, "GetApplicationList", buf);
 }
 
@@ -114,7 +114,7 @@ uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t styp
 {
 	struct http_req *rq = 0;
 	struct http_rsp *rp = 0;
-	char buf[200];
+	char buf[300];
 	str_t req = 0;
 	char *service = 0;
 
@@ -151,8 +151,10 @@ uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t styp
 	if (rp) {
 		switch (http_client_get_errcode(rp)) {
 			case 200:
+				printf("action invoke successfully.\n");
 				break;
 			default:
+				printf("action invoke error %d\n", http_client_get_errcode(rp));
 				break;
 		}
 	}
