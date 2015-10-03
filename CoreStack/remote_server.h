@@ -11,6 +11,8 @@ extern uint16_t remote_server_get_application_list(struct remote_server *server,
 
 extern uint16_t remote_server_launch_application(struct remote_server *server, uint32_t appid, uint32_t pid);
 
+extern uint16_t remote_server_set_client_profile(struct remote_server *server, uint32_t pid);
+
 extern void remote_server_destory(struct remote_server *server);
 
 #endif

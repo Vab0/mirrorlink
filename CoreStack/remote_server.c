@@ -12,6 +12,7 @@
 enum {
 	ACTION_GET_APPLICATION_LIST,
 	ACTION_LAUNCH_APPLICATION,
+	ACTION_SET_CLIENT_PROFILE,
 	ACTION_MAX
 };
 
@@ -46,10 +47,12 @@ struct action {
 static uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t stype, char *action, char *args, action_parser handler);
 static uint8_t get_application_list_parse(struct remote_server *server, char *content, str_t *str);
 static uint8_t launch_application_parse(struct remote_server *server, char *content, str_t *str);
+static uint8_t set_client_profile_parse(struct remote_server *server, char *content, str_t *str);
 
 static struct action action_map[ACTION_MAX] = {
 	{SERVICE_TYPE_APP, "GetApplicationList", get_application_list_parse},
-	{SERVICE_TYPE_APP, "LaunchApplication", launch_application_parse}
+	{SERVICE_TYPE_APP, "LaunchApplication", launch_application_parse},
+	{SERVICE_TYPE_CLP, "SetClientProfile", set_client_profile_parse}
 };
 
 
@@ -120,8 +123,6 @@ struct remote_server *remote_server_create(char *ip, uint16_t port, char *path)
 
 uint16_t remote_server_get_application_list(struct remote_server *server, uint32_t pid, char *filter)
 {
-	struct http_req *rq = 0;
-	struct http_rsp *rp = 0;
 	char buf[100];
 
 	if (!server) {
@@ -134,8 +135,6 @@ uint16_t remote_server_get_application_list(struct remote_server *server, uint32
 
 uint16_t remote_server_launch_application(struct remote_server *server, uint32_t appid, uint32_t pid)
 {
-	struct http_req *rq = 0;
-	struct http_rsp *rp = 0;
 	char buf[100];
 
 	if (!server) {
@@ -146,6 +145,17 @@ uint16_t remote_server_launch_application(struct remote_server *server, uint32_t
 	return remote_server_invoke_action(server, action_map[ACTION_LAUNCH_APPLICATION].stype, action_map[ACTION_LAUNCH_APPLICATION].name, buf, action_map[ACTION_LAUNCH_APPLICATION].handler);
 }
 
+uint16_t remote_server_set_client_profile(struct remote_server *server, uint32_t pid)
+{
+	char buf[100];
+
+	if (!server) {
+		return 0;
+	}
+
+	return remote_server_invoke_action(server, action_map[ACTION_SET_CLIENT_PROFILE].stype, action_map[ACTION_SET_CLIENT_PROFILE].name, buf, action_map[ACTION_SET_CLIENT_PROFILE].handler);
+
+}
 uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t stype, char *action, char *args, action_parser handler)
 {
 	struct http_req *rq = 0;
@@ -211,6 +221,10 @@ uint8_t launch_application_parse(struct remote_server *server, char *content, st
 	return 0;
 }
 
+uint8_t set_client_profile_parse(struct remote_server *server, char *content, str_t *str)
+{
+	return 0;
+}
 
 void remote_server_destory(struct remote_server *server)
 {
