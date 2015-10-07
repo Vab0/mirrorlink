@@ -70,7 +70,7 @@ struct remote_server *remote_server_create(char *ip, uint16_t port, char *path)
 			if (xmlStrEqual(c1->name, xmlCharStrdup("device"))) {
 				xmlNodePtr c2 = xmlFirstElementChild(c1);
 				for (; c2 != 0; c2 = xmlNextElementSibling(c2)) {
-					if (xmlStrEqual(c2->name, xmlCharStrdup("deviceType"))) {
+					if (xmlStrEqual(c2->name, xmlCharStrdup("deviceType")) && xmlStrEqual(xmlNodeGetContent(c2), xmlCharStrdup("urn:schemas-upnp-org:device:TmServerDevice:1"))) {
 						printf("this is a mirrorlink server device.\n");
 						server = (struct remote_server *)calloc(1, sizeof(*server));
 						str_append(&(server->ip), ip);
