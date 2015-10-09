@@ -147,7 +147,53 @@ uint16_t remote_server_launch_application(struct remote_server *server, uint32_t
 
 uint16_t remote_server_set_client_profile(struct remote_server *server, uint32_t pid)
 {
-	char buf[100];
+	char *buf = 
+		"<ProfileID>"
+		"0"
+		"</ProfileID>"
+		"<ClientProfile>"
+		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+		"<clientProfile>"
+		"<clientID>Cl_1</clientID>"
+		"<friendlyName>Client One</friendlyName>"
+		"<manufacturer>man_2</manufacturer>"
+		"<modelName>CL_Model2</modelName>"
+		"<modelNumber>2009</modelNumber>"
+		"<iconPreference>"
+		"<mimetype>image/png</mimetype>"
+		"<width>240</width>"
+		"<height>240</height>"
+		"<depth>24</depth>"
+		"</iconPreference>"
+		"<connectivity>"
+		"<bluetooth>"
+		"<bdAddr>1A2B3C4D5E6F</bdAddr>"
+		"<startConnection>false</startConnection>"
+		"</bluetooth>"
+		"</connectivity>"
+		"<rtpStreaming>"
+		"<payloadType>0,99</payloadType>"
+		"<audioIPL>4800</audioIPL>"
+		"<audioMPL>9600</audioMPL>"
+		"</rtpStreaming>"
+		"<services>"
+		"<notification>"
+		"<notiUiSupport>true</notiUiSupport>"
+		"<maxActions>3</maxActions>"
+		"<actionNameMaxLength>15</actionNameMaxLength>"
+		"<notiTitleMaxLength>25</notiTitleMaxLength>"
+		"<notiBodyMaxLength>100</notiBodyMaxLength>"
+		"</notification>"
+		"</services>"
+		"<mirrorLinkVersion>"
+		"<majorVersion>1</majorVersion>"
+		"<minorVersion>1</minorVersion>"
+		"</mirrorLinkVersion>"
+		"<misc>"
+		"<driverDistractionSupport>true</driverDistractionSupport>"
+		"</misc>"
+		"</clientProfile>"
+		"</ClientProfile>";
 
 	if (!server) {
 		return 0;
@@ -175,7 +221,7 @@ uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t styp
 			service = "TmNotificationServer:1";
 			break;
 	}
-	rq = http_client_make_req("POST", server->sinfo[SERVICE_TYPE_APP].curl);
+	rq = http_client_make_req("POST", server->sinfo[stype].curl);
 	sprintf(buf, "HOST: %s:%d\r\n", server->ip, server->port);
 	http_client_add_header(rq, buf);
 	http_client_add_header(rq, "CONTENT-TYPE: text/xml; charset=\"utf-8\"\r\n");
