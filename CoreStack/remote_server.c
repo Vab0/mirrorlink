@@ -147,10 +147,9 @@ uint16_t remote_server_launch_application(struct remote_server *server, uint32_t
 
 uint16_t remote_server_set_client_profile(struct remote_server *server, uint32_t pid)
 {
-	char *buf = 
-		"<ProfileID>"
-		"0"
-		"</ProfileID>"
+	str_t param = 0;
+	uint16_t ret = 0;
+	char *profile = 
 		"<ClientProfile>"
 		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 		"<clientProfile>"
@@ -194,13 +193,18 @@ uint16_t remote_server_set_client_profile(struct remote_server *server, uint32_t
 		"</misc>"
 		"</clientProfile>"
 		"</ClientProfile>";
+	char buf[50];
 
 	if (!server) {
 		return 0;
 	}
 
-	return remote_server_invoke_action(server, action_map[ACTION_SET_CLIENT_PROFILE].stype, action_map[ACTION_SET_CLIENT_PROFILE].name, buf, action_map[ACTION_SET_CLIENT_PROFILE].handler);
-
+	sprintf(buf, "<ProfileID>%d</ProfileID>", pid);
+	str_append(&param, buf);
+	str_append(&param, profile);
+	ret = remote_server_invoke_action(server, action_map[ACTION_SET_CLIENT_PROFILE].stype, action_map[ACTION_SET_CLIENT_PROFILE].name, param, action_map[ACTION_SET_CLIENT_PROFILE].handler);
+	free(param);
+	return ret;
 }
 uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t stype, char *action, char *args, action_parser handler)
 {
