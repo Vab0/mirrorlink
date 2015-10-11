@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <arpa/inet.h>
 
@@ -13,10 +14,9 @@ static void fb_update_parse(int fd, uint16_t num);
 static void server_cut_text_parse(int fd, uint32_t len);
 static void ex_message_parse(int fd, uint8_t etype, uint16_t len);
 
-void vnc_session_main_task(void *args)
+void vnc_session_main_task(char *ip, uint16_t port)
 {
-	struct vnc_session *session = (struct vnc_session *)args;
-	int fd = conn_open(session->ip, session->port);
+	int fd = conn_open(ip, port);
 	/* Protocol Version Handshake */
 	{
 		uint8_t buf[12];
@@ -28,6 +28,7 @@ void vnc_session_main_task(void *args)
 			conn_write(fd, buf, 12);
 		}
 	}
+	printf("Protocol Version Handshake Finished.\n");
 	/* Security Handshake */
 	{
 		uint8_t num = 0;
@@ -43,30 +44,24 @@ void vnc_session_main_task(void *args)
 			return;
 		} else {
 			uint8_t i;
-			uint8_t flag;
+			uint8_t flag = 0;
 			buf = (uint8_t *)malloc(num);
 			conn_read(fd, buf, num);
 			for (i = 0; i < num; i++) {
-				if (0 == buf[i]) {
-					break;
-				} else if (1 == buf[i]) {
+				if (1 == buf[i]) {
 					flag = 1;
 				}
 			}
 			free(buf);
-			if (i != num) {
-				if (flag) {
-					conn_write(fd, &flag, 1);
-				} else {
-					conn_close(fd);
-					return;
-				}
+			if (flag) {
+				conn_write(fd, &flag, 1);
 			} else {
 				conn_close(fd);
 				return;
 			}
 		}
 	}
+	printf("Security Handshake Finished.\n");
 	/* Security Result Handshake */
 	{
 		uint32_t r;
@@ -86,6 +81,7 @@ void vnc_session_main_task(void *args)
 			return;
 		}
 	}
+	printf("Security Result Handshake Finished.\n");
 	/* Initialization Messages */
 	{
 		uint8_t val = 0;
@@ -94,13 +90,15 @@ void vnc_session_main_task(void *args)
 		uint32_t len = 0;
 		conn_write(fd, &val, 1);
 		buffer_init(&buf, 24);
-		conn_read(fd, buf, 24);
-		len = ntohl(*(uint32_t *)(buf + 20));
-		buffer_append(&buffer, len);
-		conn_read(fd, buffer->buf + 24, len);
+		conn_read(fd, buf.buf, 24);
+		buf.len += 24;
+		len = ntohl(*(uint32_t *)(buf.buf + 20));
+		buffer_append(&buf, len);
+		conn_read(fd, buf.buf + 24, len);
 		/* parse server infomation */
-		free(buf);
+		buffer_clear(&buf);
 	}
+	printf("Initialization Messages Finished.\n");
 	/* Client to Server Messages */
 	{
 		uint8_t data[20];
@@ -109,6 +107,7 @@ void vnc_session_main_task(void *args)
 		/* Set Pixel Format: ARGB 888, RGB 565 */
 		conn_write(fd, data, 20);
 	}
+	printf("vnc handshake finished\n");
 	while (1) {
 		uint8_t msg_type;
 		conn_read(fd, &msg_type, 1);

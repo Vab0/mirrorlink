@@ -122,8 +122,8 @@ read_intr:
 					} else if (0 == t) {
 						return -3;
 					} else {
-						len -= r;
 						r += t;
+						len -= r;
 					}
 				}
 			}

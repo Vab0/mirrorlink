@@ -3,11 +3,6 @@
 
 #include <stdint.h>
 
-struct vnc_session {
-	char *ip;
-	uint16_t port;
-};
-
-extern void vnc_session_main_task(void *args);
+extern void vnc_session_main_task(char *ip, uint16_t port);
 
 #endif

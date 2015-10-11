@@ -250,7 +250,10 @@ uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t styp
 				{
 					str_t str = 0;
 					printf("action invoke successfully.\n");
-					handler(server, http_client_get_body(rp), &str);
+					printf("response body is %s\n", http_client_get_body(rp));
+					if (handler) {
+						handler(server, http_client_get_body(rp), &str);
+					}
 				}
 				break;
 			default:
