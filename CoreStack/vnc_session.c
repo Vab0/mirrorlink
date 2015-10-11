@@ -10,12 +10,14 @@
 #include "Utils/buffer.h"
 
 
-static void fb_update_parse(int fd, uint16_t num);
+static void fb_update_parse(int fd, uint16_t num, uint16_t *width, uint16_t *height);
 static void server_cut_text_parse(int fd, uint32_t len);
 static void ex_message_parse(int fd, uint8_t etype, uint16_t len);
 
 void vnc_session_main_task(char *ip, uint16_t port)
 {
+	uint16_t rfb_width = 0;
+	uint16_t rfb_height = 0;
 	int fd = conn_open(ip, port);
 	/* Protocol Version Handshake */
 	{
@@ -95,13 +97,21 @@ void vnc_session_main_task(char *ip, uint16_t port)
 		len = ntohl(*(uint32_t *)(buf.buf + 20));
 		buffer_append(&buf, len);
 		conn_read(fd, buf.buf + 24, len);
-		/* parse server infomation */
+		/* only remote width and height is needed.
+ 		   pixel format is indicated in Server Configuration Message instead. */
+		rfb_width = ((uint16_t)buf.buf[0] << 8) | buf.buf[1];
+		rfb_height = ((uint16_t)buf.buf[2] << 8) | buf.buf[3];
 		buffer_clear(&buf);
 	}
 	printf("Initialization Messages Finished.\n");
 	/* Client to Server Messages */
 	{
 		uint8_t data[20];
+		data[0] = 2;
+		/* padding */
+		data[1] = 0;
+		data[2] = 0;
+		data[3] = 3;
 		/* Set Encoding: MirrorLink, ContextInfo, DesktopSize */
 		conn_write(fd, data, 16);
 		/* Set Pixel Format: ARGB 888, RGB 565 */
@@ -118,7 +128,7 @@ void vnc_session_main_task(char *ip, uint16_t port)
 					uint16_t num;
 					conn_read(fd, header, 3);
 					num = ((uint16_t)header[1] << 8) | header[2];
-					fb_update_parse(fd, num);
+					fb_update_parse(fd, num, &rfb_width, &rfb_height);
 				}
 				break;
 			case 1: /* Set Colour Map Entries */
@@ -222,7 +232,7 @@ void ex_message_parse(int fd, uint8_t etype, uint16_t len)
 	free(buf);
 }
 
-void fb_update_parse(int fd, uint16_t num)
+void fb_update_parse(int fd, uint16_t num, uint16_t *width, uint16_t *height)
 {
 	uint8_t *buf;
 	uint8_t *ptr;
@@ -258,7 +268,8 @@ void fb_update_parse(int fd, uint16_t num)
 				break;
 			case -223: /* Desktop Size */
 				{
-
+					*width = w;
+					*height = h;
 				}
 				break;
 			case -525: /* Run Length Encoding */
