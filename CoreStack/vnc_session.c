@@ -124,8 +124,6 @@ void vnc_session_main_task(char *ip, uint16_t port)
 		data[15] = 0x21;
 		/* Set Encoding: MirrorLink, ContextInfo, DesktopSize */
 		conn_write(fd, data, 16);
-
-		
 	}
 	printf("vnc handshake finished\n");
 	while (1) {
@@ -190,32 +188,36 @@ void ex_message_parse(int fd, uint8_t etype, uint16_t len)
 	switch (etype) {
 		case 0: /* ByeBye */
 			{
-
+				uint8_t data[4] = {0x80, 0x00, 0x00, 0x00};
+				/* response byebye message with byebye. */
+				conn_write(fd, data, 4);
 			}
 			break;
 		case 1: /* Server Display Configuration */
 			{
 				/* TODO: parse server display configuration and send
                                          client display configuration */
-				uint8_t data[20] = {0, 0, 0, 0};
-				data[4] = 16;
-				data[5] = 16;
-				data[6] = 1;
-				data[7] = 1;
-				data[8] = 0;
-				data[9] = 31;
-				data[10] = 0;
-				data[11] = 63;
-				data[12] = 0;
-				data[13] = 31;
-				data[14] = 11;
-				data[15] = 5;
-				data[16] = 0;
-				data[17] = 0;
-				data[18] = 0;
-				data[19] = 0;
-				/* Set Pixel Format: ARGB 888, RGB 565 */
-				conn_write(fd, data, 20);
+				{
+					uint8_t data[20] = {0, 0, 0, 0};
+					data[4] = 16;
+					data[5] = 16;
+					data[6] = 1;
+					data[7] = 1;
+					data[8] = 0;
+					data[9] = 31;
+					data[10] = 0;
+					data[11] = 63;
+					data[12] = 0;
+					data[13] = 31;
+					data[14] = 11;
+					data[15] = 5;
+					data[16] = 0;
+					data[17] = 0;
+					data[18] = 0;
+					data[19] = 0;
+					/* Set Pixel Format: ARGB 888, RGB 565 */
+					conn_write(fd, data, 20);
+				}
 			}
 			break;
 		case 3: /* Server Event Configuration */
