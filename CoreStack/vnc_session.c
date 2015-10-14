@@ -9,15 +9,19 @@
 #include "Platform/conn.h"
 #include "Utils/buffer.h"
 
+struct vnc_session {
+	uint16_t rfb_width;
+	uint16_t rfb_height;
+	uint8_t quit;
+};
 
-static void fb_update_parse(int fd, uint16_t num, uint16_t *width, uint16_t *height);
+static void fb_update_parse(struct vnc_session *session, int fd, uint16_t num);
 static void server_cut_text_parse(int fd, uint32_t len);
-static void ex_message_parse(int fd, uint8_t etype, uint16_t len);
+static void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16_t len);
 
 void vnc_session_main_task(char *ip, uint16_t port)
 {
-	uint16_t rfb_width = 0;
-	uint16_t rfb_height = 0;
+	struct vnc_session session;
 	int fd = conn_open(ip, port);
 	/* Protocol Version Handshake */
 	{
@@ -99,8 +103,8 @@ void vnc_session_main_task(char *ip, uint16_t port)
 		conn_read(fd, buf.buf + 24, len);
 		/* only remote width and height is needed.
  		   pixel format is indicated in Server Configuration Message instead. */
-		rfb_width = ((uint16_t)buf.buf[0] << 8) | buf.buf[1];
-		rfb_height = ((uint16_t)buf.buf[2] << 8) | buf.buf[3];
+		session.rfb_width = ((uint16_t)buf.buf[0] << 8) | buf.buf[1];
+		session.rfb_height = ((uint16_t)buf.buf[2] << 8) | buf.buf[3];
 		buffer_clear(&buf);
 	}
 	printf("Initialization Messages Finished.\n");
@@ -125,8 +129,9 @@ void vnc_session_main_task(char *ip, uint16_t port)
 		/* Set Encoding: MirrorLink, ContextInfo, DesktopSize */
 		conn_write(fd, data, 16);
 	}
+	session.quit = 0;
 	printf("vnc handshake finished\n");
-	while (1) {
+	while (!session.quit) {
 		uint8_t msg_type;
 		conn_read(fd, &msg_type, 1);
 		switch (msg_type) {
@@ -136,7 +141,7 @@ void vnc_session_main_task(char *ip, uint16_t port)
 					uint16_t num;
 					conn_read(fd, header, 3);
 					num = ((uint16_t)header[1] << 8) | header[2];
-					fb_update_parse(fd, num, &rfb_width, &rfb_height);
+					fb_update_parse(&session, fd, num);
 				}
 				break;
 			case 1: /* Set Colour Map Entries */
@@ -170,7 +175,7 @@ void vnc_session_main_task(char *ip, uint16_t port)
 					uint16_t len;
 					conn_read(fd, header, 3);
 					len = ((uint16_t)header[1] << 8) | header[2];
-					ex_message_parse(fd, header[0], len);
+					ex_message_parse(&session, fd, header[0], len);
 				}
 				break;
 			default:
@@ -179,7 +184,7 @@ void vnc_session_main_task(char *ip, uint16_t port)
 	}
 }
 
-void ex_message_parse(int fd, uint8_t etype, uint16_t len)
+void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16_t len)
 {
 	uint8_t *buf;
 	buf = (uint8_t *)malloc(len);
@@ -191,6 +196,8 @@ void ex_message_parse(int fd, uint8_t etype, uint16_t len)
 				uint8_t data[4] = {0x80, 0x00, 0x00, 0x00};
 				/* response byebye message with byebye. */
 				conn_write(fd, data, 4);
+				conn_close(fd);
+				session->quit = 1;
 			}
 			break;
 		case 1: /* Server Display Configuration */
@@ -264,7 +271,7 @@ void ex_message_parse(int fd, uint8_t etype, uint16_t len)
 	free(buf);
 }
 
-void fb_update_parse(int fd, uint16_t num, uint16_t *width, uint16_t *height)
+void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 {
 	uint8_t *buf;
 	uint8_t *ptr;
@@ -288,11 +295,6 @@ void fb_update_parse(int fd, uint16_t num, uint16_t *width, uint16_t *height)
 
 				}
 				break;
-			case -523: /* MirrorLink Encoding */
-				{
-
-				}
-				break;
 			case -524: /* Context Information */
 				{
 
@@ -300,8 +302,8 @@ void fb_update_parse(int fd, uint16_t num, uint16_t *width, uint16_t *height)
 				break;
 			case -223: /* Desktop Size */
 				{
-					*width = w;
-					*height = h;
+					session->rfb_width = w;
+					session->rfb_height = h;
 				}
 				break;
 			case -525: /* Run Length Encoding */
