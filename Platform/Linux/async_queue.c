@@ -32,8 +32,8 @@ uint8_t async_queue_push(struct async_queue *queue, void *data)
 	int ret;
 	FD_ZERO(&efds);
 	FD_ZERO(&wfds);
-	FD_SET(fd, &wfds);
-	FD_SET(fd, &efds);
+	FD_SET(queue->efd, &wfds);
+	FD_SET(queue->efd, &efds);
 	tv.tv_sec = 1;
 	tv.tv_usec = 0;
 	if ((queue->tail + 1) % queue->size == queue->head) {
@@ -54,9 +54,9 @@ select_intr:
 	} else {
 		uint32_t i;
 		for (i = 0; i < ret; i++) {
-			if (FD_ISSET(fd, &efds)) {
+			if (FD_ISSET(queue->efd, &efds)) {
 				return 0;
-			} else if (FD_ISSET(fd, &wfds)) {
+			} else if (FD_ISSET(queue->efd, &wfds)) {
 				int t;
 				uint64_t dummy = 1;
 write_intr:
@@ -85,14 +85,14 @@ void *async_queue_pop(struct async_queue *queue)
 	void *data;
 	FD_ZERO(&efds);
 	FD_ZERO(&rfds);
-	FD_SET(fd, &rfds);
-	FD_SET(fd, &efds);
+	FD_SET(queue->efd, &rfds);
+	FD_SET(queue->efd, &efds);
 	tv.tv_sec = 1;
 	tv.tv_usec = 0;
 select_intr:
 	ret = select(queue->efd + 1, &rfds, 0, &efds, &tv);
 	if (0 == ret) {
-		return -2;
+		return 0;
 	} else if (-1 == ret) {
 		if (EINTR == errno) {
 			goto select_intr;
@@ -102,13 +102,13 @@ select_intr:
 	} else {
 		uint32_t i;
 		for (i = 0; i < ret; i++) {
-			if (FD_ISSET(fd, &efds)) {
+			if (FD_ISSET(queue->efd, &efds)) {
 				return 0;
-			} else if (FD_ISSET(fd, &rfds)) {
+			} else if (FD_ISSET(queue->efd, &rfds)) {
 				int t;
 				uint64_t dummy;
 read_intr:
-				t = read(fd, &dummy, 8);
+				t = read(queue->efd, &dummy, 8);
 				if (-1 == t) {
 					if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
 						goto select_intr;
