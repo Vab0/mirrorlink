@@ -58,9 +58,9 @@ select_intr:
 				return 0;
 			} else if (FD_ISSET(fd, &wfds)) {
 				int t;
-				char dummy = 1;
+				uint64_t dummy = 1;
 write_intr:
-				t = write(queue->efd, &dummy, 1);
+				t = write(queue->efd, &dummy, 8);
 				if (t <= 0) {
 					if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
 						goto select_intr;
