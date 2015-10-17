@@ -87,7 +87,7 @@ int conn_read(int fd, char *buf, uint32_t len)
 	fd_set efds;
 	struct timeval tv;
 	int ret;
-	int r = 0;
+	uint32_t r = 0;
 	FD_ZERO(&efds);
 	FD_ZERO(&rfds);
 	FD_SET(fd, &rfds);
@@ -123,7 +123,7 @@ read_intr:
 						return -3;
 					} else {
 						r += t;
-						len -= r;
+						len -= t;
 					}
 				}
 			}

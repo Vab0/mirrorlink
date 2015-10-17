@@ -407,7 +407,6 @@ void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 		}
 		ptr += 12;
 	}
-/*
 	{
 		uint8_t data[10];
 		data[0] = 3;
@@ -423,7 +422,6 @@ void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 		conn_write(fd, data, 10);
 		printf("framebuffer request sent %d, %d\n", session->rfb_width, session->rfb_height);
 	}
-*/
 	free(buf);
 }
 
