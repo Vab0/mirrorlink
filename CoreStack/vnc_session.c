@@ -146,7 +146,6 @@ void vnc_session_main_task(char *ip, uint16_t port)
 			conn_close(fd);
 			return;
 		} else if (0 != r) {
-			free(buf);
 			conn_close(fd);
 			return;
 		}
@@ -175,17 +174,14 @@ void vnc_session_main_task(char *ip, uint16_t port)
 	/* Client to Server Messages */
 	{
 		uint8_t data[16] = {2, 0, 0, 3};
-
 		data[4] = 0xff;
 		data[5] = 0xff;
 		data[6] = 0xfd;
 		data[7] = 0xf5;
-
 		data[8] = 0xff;
 		data[9] = 0xff;
 		data[10] = 0xfd;
 		data[11] = 0xf4;
-
 		data[12] = 0xff;
 		data[13] = 0xff;
 		data[14] = 0xff;
@@ -325,12 +321,16 @@ void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16
 		case 3: /* Server Event Configuration */
 			{
 				uint8_t data[32] = {128, 4, 0, 28};
+				if (1 != session->status) {
+					break;
+				}
 				memcpy(&(session->seinfo), buf, len);
 				data[28] = 0;
 				data[29] = 0;
 				data[30] = 1;
 				data[31] = 1;
 				conn_write(fd, data, 32);
+				session->status = 2;
 				printf("client event configuration is sent\n");
 				{
 					uint8_t data[10];
@@ -393,8 +393,8 @@ void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 	uint16_t i;
 	uint8_t fb_update = 0;
 	uint8_t inc = 1;
+	uint8_t buf[12];
 	for (i = 0; i < num; i++) {
-		uint8_t *buf = (uint8_t *)calloc(1, 12);
 		uint16_t px;
 		uint16_t py;
 		uint16_t w;
@@ -455,7 +455,6 @@ void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 			default:
 				break;
 		}
-		free(buf);
 	}
 	if (fb_update) {
 		uint8_t data[10];

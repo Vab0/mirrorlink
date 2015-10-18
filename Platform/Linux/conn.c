@@ -187,14 +187,17 @@ int conn_write(int fd, char *buf, uint32_t len)
 {
 	fd_set wfds;
 	fd_set efds;
+	struct timeval tv;
 	int ret;
 	uint32_t r = 0;
 	FD_ZERO(&efds);
 	FD_ZERO(&wfds);
 	FD_SET(fd, &wfds);
 	FD_SET(fd, &efds);
+	tv.tv_sec = 1;
+	tv.tv_usec = 0;
 	while (len) {
-		ret = select(fd + 1, 0, &wfds, &efds, 0);
+		ret = select(fd + 1, 0, &wfds, &efds, &tv);
 		if (0 == ret) {
 			return -2;
 		} else if (-1 == ret) {
