@@ -60,6 +60,15 @@ struct server_evinfo {
 	uint32_t pes:1;
 } __attribute((packed));
 
+struct context_info {
+	uint32_t appid;
+	uint16_t tlac;
+	uint16_t tlcc;
+	uint32_t ac;
+	uint32_t cc;
+	uint32_t cr;
+} __attribute((packed));
+
 struct vnc_session {
 	uint16_t rfb_width;
 	uint16_t rfb_height;
@@ -381,24 +390,22 @@ void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16
 
 void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 {
-	uint8_t *buf;
-	uint8_t *ptr;
-	uint16_t px;
-	uint16_t py;
-	uint16_t w;
-	uint16_t h;
-	int32_t etype;
 	uint16_t i;
 	uint8_t fb_update = 0;
 	uint8_t inc = 1;
-	ptr = buf = (uint8_t *)calloc(1, 12 * num);
-	conn_read(fd, buf, 12 * num);
 	for (i = 0; i < num; i++) {
-		px = ((uint16_t)ptr[0] << 8) | ptr[1];
-		py = ((uint16_t)ptr[2] << 8) | ptr[3];
-		w = ((uint16_t)ptr[4] << 8) | ptr[5];
-		h = ((uint16_t)ptr[6] << 8) | ptr[7];
-		etype = ((uint32_t)ptr[8] << 24) | ((uint32_t)ptr[9] << 16) | ((uint32_t)ptr[10] << 8) | ptr[11];
+		uint8_t *buf = (uint8_t *)calloc(1, 12);
+		uint16_t px;
+		uint16_t py;
+		uint16_t w;
+		uint16_t h;
+		int32_t etype;
+		conn_read(fd, buf, 12);
+		px = ((uint16_t)buf[0] << 8) | buf[1];
+		py = ((uint16_t)buf[2] << 8) | buf[3];
+		w = ((uint16_t)buf[4] << 8) | buf[5];
+		h = ((uint16_t)buf[6] << 8) | buf[7];
+		etype = ((uint32_t)buf[8] << 24) | ((uint32_t)buf[9] << 16) | ((uint32_t)buf[10] << 8) | buf[11];
 		switch (etype) {
 			case 0: /* Raw Encoding */
 				{
@@ -408,12 +415,21 @@ void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 					if ((px + w > session->rfb_width) || (py + h > session->rfb_height)) {
 						break;
 					}
+					{
+						uint8_t *fb = (uint8_t *)malloc(w * h * 2);
+						conn_read(fd, fb, w * h * 2);
+						free(fb);
+					}
 					fb_update = 1;
 					printf("rectangle (%d, %d, %d, %d) updated\n", px, py, w, h);
 				}
 				break;
 			case -524: /* Context Information */
 				{
+					{
+						struct context_info info;
+						conn_read(fd, (char *)&info, 20);
+					}
 					printf("context information received\n");
 				}
 				break;
@@ -436,8 +452,10 @@ void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 
 				}
 				break;
+			default:
+				break;
 		}
-		ptr += 12;
+		free(buf);
 	}
 	if (fb_update) {
 		uint8_t data[10];
@@ -454,7 +472,6 @@ void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 		conn_write(fd, data, 10);
 		printf("framebuffer request sent %d, %d\n", session->rfb_width, session->rfb_height);
 	}
-	free(buf);
 }
 
 void server_cut_text_parse(int fd, uint32_t len)
