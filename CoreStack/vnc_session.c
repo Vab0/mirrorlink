@@ -299,18 +299,6 @@ void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16
 					conn_write(fd, data, 26);
 					printf("client display configuration is sent\n");
 				}
-			}
-			break;
-		case 3: /* Server Event Configuration */
-			{
-				uint8_t data[32] = {128, 4, 0, 28};
-				memcpy(&(session->seinfo), buf, len);
-				data[28] = 0;
-				data[29] = 0;
-				data[30] = 1;
-				data[31] = 1;
-				conn_write(fd, data, 32);
-				printf("client event configuration is sent\n");
 				{
 					uint8_t data[20] = {0, 0, 0, 0};
 					data[4] = 16;
@@ -332,6 +320,18 @@ void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16
 					/* Set Pixel Format: ARGB 888, RGB 565 */
 					printf("set pixel format is sent %d\n", conn_write(fd, data, 20));
 				}
+			}
+			break;
+		case 3: /* Server Event Configuration */
+			{
+				uint8_t data[32] = {128, 4, 0, 28};
+				memcpy(&(session->seinfo), buf, len);
+				data[28] = 0;
+				data[29] = 0;
+				data[30] = 1;
+				data[31] = 1;
+				conn_write(fd, data, 32);
+				printf("client event configuration is sent\n");
 				{
 					uint8_t data[10];
 					data[0] = 3;
