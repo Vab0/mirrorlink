@@ -65,6 +65,7 @@ struct vnc_session {
 	uint16_t rfb_height;
 	struct server_dispinfo sdinfo;
 	struct server_evinfo seinfo;
+	uint8_t status;
 	uint8_t quit;
 };
 
@@ -75,6 +76,7 @@ static void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype,
 void vnc_session_main_task(char *ip, uint16_t port)
 {
 	struct vnc_session session;
+	session.status = 0;
 	int fd = conn_open(ip, port);
 	/* Protocol Version Handshake */
 	{
@@ -185,7 +187,7 @@ void vnc_session_main_task(char *ip, uint16_t port)
 	session.quit = 0;
 	printf("vnc handshake finished\n");
 	while (!session.quit) {
-		uint8_t msg_type = 0;
+		uint8_t msg_type = 0xff;
 		conn_read(fd, &msg_type, 1);
 		switch (msg_type) {
 			case 0: /* Framebuffer Update */
@@ -255,9 +257,13 @@ void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16
 			break;
 		case 1: /* Server Display Configuration */
 			{
+				if (session->status) {
+					break;
+				} else {
+					session->status = 1;
+				}
 				{
 					uint8_t data[26] = {128, 2, 0, 22};
-					struct server_dispinfo sdinfo;
 					memcpy(&(session->sdinfo), buf, len);
 					data[4] = 1;
 					data[5] = 1;
@@ -284,6 +290,18 @@ void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16
 					conn_write(fd, data, 26);
 					printf("client display configuration is sent\n");
 				}
+			}
+			break;
+		case 3: /* Server Event Configuration */
+			{
+				uint8_t data[32] = {128, 4, 0, 28};
+				memcpy(&(session->seinfo), buf, len);
+				data[28] = 0;
+				data[29] = 0;
+				data[30] = 1;
+				data[31] = 1;
+				conn_write(fd, data, 32);
+				printf("client event configuration is sent\n");
 				{
 					uint8_t data[20] = {0, 0, 0, 0};
 					data[4] = 16;
@@ -303,20 +321,23 @@ void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16
 					data[18] = 0;
 					data[19] = 0;
 					/* Set Pixel Format: ARGB 888, RGB 565 */
-					conn_write(fd, data, 20);
+					printf("set pixel format is sent %d\n", conn_write(fd, data, 20));
 				}
-			}
-			break;
-		case 3: /* Server Event Configuration */
-			{
-				uint8_t data[32] = {128, 4, 0, 28};
-				memcpy(&(session->seinfo), buf, len);
-				data[31] = 0;
-				data[30] = 0;
-				data[29] = 1;
-				data[28] = 1;
-				conn_write(fd, data, 32);
-				printf("client event configuration is sent\n");
+				{
+					uint8_t data[10];
+					data[0] = 3;
+					data[1] = 0;
+					data[2] = 0;
+					data[3] = 0;
+					data[4] = 0;
+					data[5] = 0;
+					data[6] = session->rfb_width >> 8;
+					data[7] = session->rfb_width & 0xffU;
+					data[8] = session->rfb_height >> 8;
+					data[9] = session->rfb_height & 0xffU;
+					conn_write(fd, data, 10);
+					printf("framebuffer request sent %d, %d\n", session->rfb_width, session->rfb_height);
+				}
 			}
 			break;
 		case 5: /* Event Mapping */
@@ -368,6 +389,8 @@ void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 	uint16_t h;
 	int32_t etype;
 	uint16_t i;
+	uint8_t fb_update = 0;
+	uint8_t inc = 1;
 	ptr = buf = (uint8_t *)calloc(1, 12 * num);
 	conn_read(fd, buf, 12 * num);
 	for (i = 0; i < num; i++) {
@@ -375,22 +398,31 @@ void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 		py = ((uint16_t)ptr[2] << 8) | ptr[3];
 		w = ((uint16_t)ptr[4] << 8) | ptr[5];
 		h = ((uint16_t)ptr[6] << 8) | ptr[7];
-		etype = ((uint32_t)ptr[8] << 24) | ((uint32_t)ptr[8] << 16) | ((uint32_t)ptr[8] << 8) | ptr[8];
+		etype = ((uint32_t)ptr[8] << 24) | ((uint32_t)ptr[9] << 16) | ((uint32_t)ptr[10] << 8) | ptr[11];
 		switch (etype) {
 			case 0: /* Raw Encoding */
 				{
-
+					if (0 == w || 0 == h) {
+						break;
+					}
+					if ((px + w > session->rfb_width) || (py + h > session->rfb_height)) {
+						break;
+					}
+					fb_update = 1;
+					printf("rectangle (%d, %d, %d, %d) updated\n", px, py, w, h);
 				}
 				break;
 			case -524: /* Context Information */
 				{
-
+					printf("context information received\n");
 				}
 				break;
 			case -223: /* Desktop Size */
 				{
 					session->rfb_width = w;
 					session->rfb_height = h;
+					inc = 0;
+					fb_update = 1;
 					printf("Desktop Size Encoding received\n");
 				}
 				break;
@@ -407,10 +439,10 @@ void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 		}
 		ptr += 12;
 	}
-	{
+	if (fb_update) {
 		uint8_t data[10];
 		data[0] = 3;
-		data[1] = 0;
+		data[1] = inc;
 		data[2] = 0;
 		data[3] = 0;
 		data[4] = 0;
