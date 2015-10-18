@@ -70,6 +70,7 @@ struct context_info {
 } __attribute((packed));
 
 struct vnc_session {
+	int fd;
 	uint16_t rfb_width;
 	uint16_t rfb_height;
 	struct server_dispinfo sdinfo;
@@ -78,24 +79,24 @@ struct vnc_session {
 	uint8_t quit;
 };
 
-static void fb_update_parse(struct vnc_session *session, int fd, uint16_t num);
-static void server_cut_text_parse(int fd, uint32_t len);
-static void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16_t len);
+static void fb_update_parse(struct vnc_session *session, uint16_t num);
+static void server_cut_text_parse(struct vnc_session *session, uint32_t len);
+static void ex_message_parse(struct vnc_session *session, uint8_t etype, uint16_t len);
 
 void vnc_session_main_task(char *ip, uint16_t port)
 {
 	struct vnc_session session;
 	session.status = 0;
-	int fd = conn_open(ip, port);
+	session.fd = conn_open(ip, port);
 	/* Protocol Version Handshake */
 	{
 		uint8_t buf[12];
-		conn_read(fd, buf, 12);
+		conn_read(session.fd, buf, 12);
 		if (0 != memcmp(buf, "RFB 003.008\n", 12)) {
-			conn_close(fd);
+			conn_close(session.fd);
 			return;
 		} else {
-			conn_write(fd, buf, 12);
+			conn_write(session.fd, buf, 12);
 		}
 	}
 	printf("Protocol Version Handshake Finished.\n");
@@ -103,20 +104,20 @@ void vnc_session_main_task(char *ip, uint16_t port)
 	{
 		uint8_t num = 0;
 		uint8_t *buf = 0;
-		conn_read(fd, &num, 1);
+		conn_read(session.fd, &num, 1);
 		if (0 == num) {
 			uint32_t n;
-			conn_read(fd, (uint8_t *)&n, 4);
+			conn_read(session.fd, (uint8_t *)&n, 4);
 			buf = (uint8_t *)malloc(n);
-			conn_read(fd, buf, n);
+			conn_read(session.fd, buf, n);
 			free(buf);
-			conn_close(fd);
+			conn_close(session.fd);
 			return;
 		} else {
 			uint8_t i;
 			uint8_t flag = 0;
 			buf = (uint8_t *)malloc(num);
-			conn_read(fd, buf, num);
+			conn_read(session.fd, buf, num);
 			for (i = 0; i < num; i++) {
 				if (1 == buf[i]) {
 					flag = 1;
@@ -124,9 +125,9 @@ void vnc_session_main_task(char *ip, uint16_t port)
 			}
 			free(buf);
 			if (flag) {
-				conn_write(fd, &flag, 1);
+				conn_write(session.fd, &flag, 1);
 			} else {
-				conn_close(fd);
+				conn_close(session.fd);
 				return;
 			}
 		}
@@ -137,16 +138,16 @@ void vnc_session_main_task(char *ip, uint16_t port)
 		uint32_t r;
 		uint32_t rlen;
 		uint8_t *buf = 0;
-		conn_read(fd, (uint8_t *)&r, 4);
+		conn_read(session.fd, (uint8_t *)&r, 4);
 		if (1 == r) {
-			conn_read(fd, (uint8_t *)&rlen, 4);
+			conn_read(session.fd, (uint8_t *)&rlen, 4);
 			buf = (uint8_t *)malloc(rlen);
-			conn_read(fd, buf, rlen);
+			conn_read(session.fd, buf, rlen);
 			free(buf);
-			conn_close(fd);
+			conn_close(session.fd);
 			return;
 		} else if (0 != r) {
-			conn_close(fd);
+			conn_close(session.fd);
 			return;
 		}
 	}
@@ -157,13 +158,13 @@ void vnc_session_main_task(char *ip, uint16_t port)
 		struct buffer buf;
 		uint8_t *info = 0;
 		uint32_t len = 0;
-		conn_write(fd, &val, 1);
+		conn_write(session.fd, &val, 1);
 		buffer_init(&buf, 24);
-		conn_read(fd, buf.buf, 24);
+		conn_read(session.fd, buf.buf, 24);
 		buf.len += 24;
 		len = ntohl(*(uint32_t *)(buf.buf + 20));
 		buffer_append(&buf, len);
-		conn_read(fd, buf.buf + 24, len);
+		conn_read(session.fd, buf.buf + 24, len);
 		/* only remote width and height is needed.
  		   pixel format is indicated in Server Configuration Message instead. */
 		session.rfb_width = ((uint16_t)buf.buf[0] << 8) | buf.buf[1];
@@ -187,21 +188,21 @@ void vnc_session_main_task(char *ip, uint16_t port)
 		data[14] = 0xff;
 		data[15] = 0x21;
 		/* Set Encoding: MirrorLink, ContextInfo, DesktopSize */
-		conn_write(fd, data, 16);
+		conn_write(session.fd, data, 16);
 	}
 	session.quit = 0;
 	printf("vnc handshake finished\n");
 	while (!session.quit) {
 		uint8_t msg_type = 0xff;
-		conn_read(fd, &msg_type, 1);
+		conn_read(session.fd, &msg_type, 1);
 		switch (msg_type) {
 			case 0: /* Framebuffer Update */
 				{
 					uint8_t header[3] = {0};
 					uint16_t num;
-					conn_read(fd, header, 3);
+					conn_read(session.fd, header, 3);
 					num = ((uint16_t)header[1] << 8) | header[2];
-					fb_update_parse(&session, fd, num);
+					fb_update_parse(&session, num);
 				}
 				break;
 			case 1: /* Set Colour Map Entries */
@@ -210,10 +211,10 @@ void vnc_session_main_task(char *ip, uint16_t port)
 					uint8_t header[6] = {0};
 					uint16_t num;
 					uint8_t *dummy;
-					conn_read(fd, header, 6);
+					conn_read(session.fd, header, 6);
 					num = ((uint16_t)header[4] << 8) | header[5];
 					dummy = (uint8_t *)calloc(1, num);
-					conn_read(fd, dummy, num * 6);
+					conn_read(session.fd, dummy, num * 6);
 					/* read out and split it away */
 					free(dummy);
 				}
@@ -224,18 +225,18 @@ void vnc_session_main_task(char *ip, uint16_t port)
 				{
 					uint8_t header[7] = {0};
 					uint32_t len;
-					conn_read(fd, header, 7);
+					conn_read(session.fd, header, 7);
 					len = ((uint32_t)header[3] << 24) | ((uint32_t)header[4] << 16) | ((uint32_t)header[5] << 8) | header[6];
-					server_cut_text_parse(fd, len);
+					server_cut_text_parse(&session, len);
 				}
 				break;
 			case 128: /* MirrorLink Extension Message */
 				{
 					uint8_t header[3] = {0};
 					uint16_t len;
-					conn_read(fd, header, 3);
+					conn_read(session.fd, header, 3);
 					len = ((uint16_t)header[1] << 8) | header[2];
-					ex_message_parse(&session, fd, header[0], len);
+					ex_message_parse(&session, header[0], len);
 				}
 				break;
 			default:
@@ -244,19 +245,19 @@ void vnc_session_main_task(char *ip, uint16_t port)
 	}
 }
 
-void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16_t len)
+void ex_message_parse(struct vnc_session *session, uint8_t etype, uint16_t len)
 {
 	uint8_t *buf;
 	buf = (uint8_t *)calloc(1, len);
-	conn_read(fd, buf, len);
+	conn_read(session->fd, buf, len);
 	
 	switch (etype) {
 		case 0: /* ByeBye */
 			{
 				uint8_t data[4] = {0x80, 0x00, 0x00, 0x00};
 				/* response byebye message with byebye. */
-				conn_write(fd, data, 4);
-				conn_close(fd);
+				conn_write(session->fd, data, 4);
+				conn_close(session->fd);
 				session->quit = 1;
 			}
 			break;
@@ -292,7 +293,7 @@ void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16
 					data[23] = 0;
 					data[24] = 0;
 					data[25] = 1;
-					conn_write(fd, data, 26);
+					conn_write(session->fd, data, 26);
 					printf("client display configuration is sent\n");
 				}
 				{
@@ -314,7 +315,7 @@ void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16
 					data[18] = 0;
 					data[19] = 0;
 					/* Set Pixel Format: ARGB 888, RGB 565 */
-					printf("set pixel format is sent %d\n", conn_write(fd, data, 20));
+					printf("set pixel format is sent %d\n", conn_write(session->fd, data, 20));
 				}
 			}
 			break;
@@ -329,7 +330,7 @@ void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16
 				data[29] = 0;
 				data[30] = 1;
 				data[31] = 1;
-				conn_write(fd, data, 32);
+				conn_write(session->fd, data, 32);
 				session->status = 2;
 				printf("client event configuration is sent\n");
 				{
@@ -344,7 +345,7 @@ void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16
 					data[7] = session->rfb_width & 0xffU;
 					data[8] = session->rfb_height >> 8;
 					data[9] = session->rfb_height & 0xffU;
-					conn_write(fd, data, 10);
+					conn_write(session->fd, data, 10);
 					printf("framebuffer request sent %d, %d\n", session->rfb_width, session->rfb_height);
 				}
 			}
@@ -388,7 +389,7 @@ void ex_message_parse(struct vnc_session *session, int fd, uint8_t etype, uint16
 	free(buf);
 }
 
-void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
+void fb_update_parse(struct vnc_session *session, uint16_t num)
 {
 	uint16_t i;
 	uint8_t fb_update = 0;
@@ -400,7 +401,7 @@ void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 		uint16_t w;
 		uint16_t h;
 		int32_t etype;
-		conn_read(fd, buf, 12);
+		conn_read(session->fd, buf, 12);
 		px = ((uint16_t)buf[0] << 8) | buf[1];
 		py = ((uint16_t)buf[2] << 8) | buf[3];
 		w = ((uint16_t)buf[4] << 8) | buf[5];
@@ -417,7 +418,7 @@ void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 					}
 					{
 						uint8_t *fb = (uint8_t *)malloc(w * h * 2);
-						conn_read(fd, fb, w * h * 2);
+						conn_read(session->fd, fb, w * h * 2);
 						free(fb);
 					}
 					fb_update = 1;
@@ -428,7 +429,7 @@ void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 				{
 					{
 						struct context_info info;
-						conn_read(fd, (char *)&info, 20);
+						conn_read(session->fd, (char *)&info, 20);
 					}
 					printf("context information received\n");
 				}
@@ -468,16 +469,16 @@ void fb_update_parse(struct vnc_session *session, int fd, uint16_t num)
 		data[7] = session->rfb_width & 0xffU;
 		data[8] = session->rfb_height >> 8;
 		data[9] = session->rfb_height & 0xffU;
-		conn_write(fd, data, 10);
+		conn_write(session->fd, data, 10);
 		printf("framebuffer request sent %d, %d\n", session->rfb_width, session->rfb_height);
 	}
 }
 
-void server_cut_text_parse(int fd, uint32_t len)
+void server_cut_text_parse(struct vnc_session *session, uint32_t len)
 {
 	uint8_t *buf;
 	buf = (uint8_t *)malloc(len);
-	conn_read(fd, buf, len);
+	conn_read(session->fd, buf, len);
 	free(buf);
 }
 
