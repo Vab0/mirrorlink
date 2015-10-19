@@ -82,6 +82,7 @@ struct vnc_session {
 static void fb_update_parse(struct vnc_session *session, uint16_t num);
 static void server_cut_text_parse(struct vnc_session *session, uint32_t len);
 static void ex_message_parse(struct vnc_session *session, uint8_t etype, uint16_t len);
+static void framebuffer_raw_parse(struct vnc_session *session, uint8_t *fb, uint32_t len);
 
 void vnc_session_main_task(char *ip, uint16_t port)
 {
@@ -424,6 +425,7 @@ void fb_update_parse(struct vnc_session *session, uint16_t num)
 					{
 						uint8_t *fb = (uint8_t *)malloc(w * h * 2);
 						conn_read(session->fd, fb, w * h * 2);
+						framebuffer_raw_parse(session, fb, w * h * 2);
 						free(fb);
 					}
 					fb_update = 1;
@@ -487,3 +489,7 @@ void server_cut_text_parse(struct vnc_session *session, uint32_t len)
 	free(buf);
 }
 
+void framebuffer_raw_parse(struct vnc_session *session, uint8_t *fb, uint32_t len)
+{
+	
+}
