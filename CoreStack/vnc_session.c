@@ -173,7 +173,6 @@ void vnc_session_main_task(char *ip, uint16_t port)
 	}
 	printf("Initialization Messages Finished.\n");
 	/* Client to Server Messages */
-	
 	{
 		uint8_t data[20] = {2, 0, 0, 4};
 		data[4] = 0xff;
