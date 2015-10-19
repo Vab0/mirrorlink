@@ -129,7 +129,7 @@ uint16_t remote_server_get_application_list(struct remote_server *server, uint32
 		return 0;
 	}
 
-	sprintf(buf, "<AppListingFilter>%s</AppListingFilter><ProfileID>0x%x</ProfileID>", filter, pid);
+	sprintf(buf, "<AppListingFilter>%s</AppListingFilter><ProfileID>%d</ProfileID>", filter, pid);
 	return remote_server_invoke_action(server, action_map[ACTION_GET_APPLICATION_LIST].stype, action_map[ACTION_GET_APPLICATION_LIST].name, buf, action_map[ACTION_GET_APPLICATION_LIST].handler);
 }
 
@@ -141,7 +141,7 @@ uint16_t remote_server_launch_application(struct remote_server *server, uint32_t
 		return 0;
 	}
 
-	sprintf(buf, "<AppID>0x%x</AppID><ProfileID>0x%x</ProfileID>", appid, pid);
+	sprintf(buf, "<AppID>0x%08x</AppID><ProfileID>%d</ProfileID>", appid, pid);
 	return remote_server_invoke_action(server, action_map[ACTION_LAUNCH_APPLICATION].stype, action_map[ACTION_LAUNCH_APPLICATION].name, buf, action_map[ACTION_LAUNCH_APPLICATION].handler);
 }
 

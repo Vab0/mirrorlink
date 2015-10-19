@@ -17,3 +17,16 @@ void str_append(str_t *str, char *tail)
 	*str = buf;
 }
 
+void str_toupper(str_t str)
+{
+	str_t tmp = str;
+	if (0 == str) {
+		return;
+	}
+	while (*tmp != 0) {
+		if (islower(*tmp)) {
+			*tmp = toupper(*tmp);
+		}
+		tmp++;
+	}
+}

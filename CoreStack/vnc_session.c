@@ -173,8 +173,9 @@ void vnc_session_main_task(char *ip, uint16_t port)
 	}
 	printf("Initialization Messages Finished.\n");
 	/* Client to Server Messages */
+	
 	{
-		uint8_t data[16] = {2, 0, 0, 3};
+		uint8_t data[20] = {2, 0, 0, 4};
 		data[4] = 0xff;
 		data[5] = 0xff;
 		data[6] = 0xfd;
@@ -187,8 +188,12 @@ void vnc_session_main_task(char *ip, uint16_t port)
 		data[13] = 0xff;
 		data[14] = 0xff;
 		data[15] = 0x21;
-		/* Set Encoding: MirrorLink, ContextInfo, DesktopSize */
-		conn_write(session.fd, data, 16);
+		data[16] = 0xff;
+		data[17] = 0xff;
+		data[18] = 0xfd;
+		data[19] = 0xf3;
+		/* Set Encoding: MirrorLink, ContextInfo, DesktopSize, Run-Length */
+		conn_write(session.fd, data, 20);
 	}
 	session.quit = 0;
 	printf("vnc handshake finished\n");
@@ -296,6 +301,22 @@ void ex_message_parse(struct vnc_session *session, uint8_t etype, uint16_t len)
 					conn_write(session->fd, data, 26);
 					printf("client display configuration is sent\n");
 				}
+			}
+			break;
+		case 3: /* Server Event Configuration */
+			{
+				uint8_t data[32] = {128, 4, 0, 28};
+				if (1 != session->status) {
+					break;
+				}
+				memcpy(&(session->seinfo), buf, len);
+				data[28] = 0;
+				data[29] = 0;
+				data[30] = 1;
+				data[31] = 1;
+				conn_write(session->fd, data, 32);
+				session->status = 2;
+				printf("client event configuration is sent\n");
 				{
 					uint8_t data[20] = {0, 0, 0, 0};
 					data[4] = 16;
@@ -315,24 +336,9 @@ void ex_message_parse(struct vnc_session *session, uint8_t etype, uint16_t len)
 					data[18] = 0;
 					data[19] = 0;
 					/* Set Pixel Format: ARGB 888, RGB 565 */
-					printf("set pixel format is sent %d\n", conn_write(session->fd, data, 20));
+					conn_write(session->fd, data, 20);
+					printf("set pixel format is sent\n");
 				}
-			}
-			break;
-		case 3: /* Server Event Configuration */
-			{
-				uint8_t data[32] = {128, 4, 0, 28};
-				if (1 != session->status) {
-					break;
-				}
-				memcpy(&(session->seinfo), buf, len);
-				data[28] = 0;
-				data[29] = 0;
-				data[30] = 1;
-				data[31] = 1;
-				conn_write(session->fd, data, 32);
-				session->status = 2;
-				printf("client event configuration is sent\n");
 				{
 					uint8_t data[10];
 					data[0] = 3;
@@ -445,7 +451,7 @@ void fb_update_parse(struct vnc_session *session, uint16_t num)
 				break;
 			case -525: /* Run Length Encoding */
 				{
-
+					printf("Run Length Encoding received\n");
 				}
 				break;
 			case -526: /* Transform Encoding */
