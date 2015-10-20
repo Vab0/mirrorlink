@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <arpa/inet.h>
-
 #include "Platform/conn.h"
 #include "Utils/buffer.h"
 
