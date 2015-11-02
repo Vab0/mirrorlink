@@ -85,16 +85,18 @@ static void framebuffer_raw_parse(struct vnc_session *session, uint8_t *fb, uint
 void vnc_session_main_task(char *ip, uint16_t port)
 {
 	struct vnc_session session;
+	uint8_t version = 0;
 	session.status = 0;
 	session.fd = conn_open(ip, port);
 	/* Protocol Version Handshake */
 	{
 		uint8_t buf[12];
 		conn_read(session.fd, buf, 12);
-		if (0 != memcmp(buf, "RFB 003.008\n", 12)) {
+		if (0 != memcmp(buf, "RFB 003.007\n", 12) && 0 != memcmp(buf, "RFB 003.008\n", 12)) {
 			conn_close(session.fd);
 			return;
 		} else {
+			version = buf[10] - '0';
 			conn_write(session.fd, buf, 12);
 		}
 	}
@@ -133,7 +135,7 @@ void vnc_session_main_task(char *ip, uint16_t port)
 	}
 	printf("Security Handshake Finished.\n");
 	/* Security Result Handshake */
-	{
+	if (8 == version) {
 		uint32_t r;
 		uint32_t rlen;
 		uint8_t *buf = 0;
