@@ -10,7 +10,9 @@ void str_append(str_t *str, char *tail)
 	uint32_t ln = strlen(tail);
 	if (ln) {
 		char *buf = calloc(1, lo + ln + 1);
-		strcpy(buf, *str);
+		if (lo) {
+			strcpy(buf, *str);
+		}
 		strcpy(buf + lo, tail);
 		if (*str) {
 			free(*str);
