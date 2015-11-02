@@ -54,6 +54,8 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 	fd = conn_open(ip, port);
 	sprintf(buf, "%s %s HTTP/1.0\r\n", req->method, req->path);
 	str_append(&wbuf, buf);
+	sprintf(buf, "Host: %s:%d\r\n", ip, port);
+	str_append(&wbuf, buf);
 	if (req->body) {
 		sprintf(buf, "Content-Length:%d\r\n", (int)strlen(req->body));
 		str_append(&(req->header), buf);
