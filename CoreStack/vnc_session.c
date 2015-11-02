@@ -414,6 +414,7 @@ void fb_update_parse(struct vnc_session *session, uint16_t num)
 		switch (etype) {
 			case 0: /* Raw Encoding */
 				{
+					fb_update = 1;
 					if (0 == w || 0 == h) {
 						break;
 					}
@@ -426,7 +427,6 @@ void fb_update_parse(struct vnc_session *session, uint16_t num)
 						framebuffer_raw_parse(session, fb, w * h * 2);
 						free(fb);
 					}
-					fb_update = 1;
 					printf("rectangle (%d, %d, %d, %d) updated\n", px, py, w, h);
 				}
 				break;
@@ -437,6 +437,7 @@ void fb_update_parse(struct vnc_session *session, uint16_t num)
 						conn_read(session->fd, (char *)&info, 20);
 					}
 					printf("context information received\n");
+					fb_update = 1;
 				}
 				break;
 			case -223: /* Desktop Size */
