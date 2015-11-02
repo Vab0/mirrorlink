@@ -210,7 +210,7 @@ uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t styp
 {
 	struct http_req *rq = 0;
 	struct http_rsp *rp = 0;
-	char buf[300];
+	char buf[300] = {0};
 	str_t req = 0;
 	char *service = 0;
 
@@ -226,7 +226,6 @@ uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t styp
 			break;
 	}
 	rq = http_client_make_req("POST", server->sinfo[stype].curl);
-	sprintf(buf, "HOST: %s:%d\r\n", server->ip, server->port);
 	http_client_add_header(rq, buf);
 	http_client_add_header(rq, "CONTENT-TYPE: text/xml; charset=\"utf-8\"\r\n");
 	sprintf(buf, "SOAPACTION: \"urn:schemas-upnp-org:service:%s#%s\"\r\n", service, action);
