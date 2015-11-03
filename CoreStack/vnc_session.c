@@ -176,25 +176,29 @@ void vnc_session_main_task(char *ip, uint16_t port)
 	printf("Initialization Messages Finished.\n");
 	/* Client to Server Messages */
 	{
-		uint8_t data[20] = {2, 0, 0, 4};
+		uint8_t data[24] = {2, 0, 0, 5};
 		data[4] = 0xff;
 		data[5] = 0xff;
 		data[6] = 0xfd;
-		data[7] = 0xf5;
-		data[8] = 0xff;
-		data[9] = 0xff;
-		data[10] = 0xfd;
-		data[11] = 0xf4;
+		data[7] = 0xf3;
+		data[8] = 0x00;
+		data[9] = 0x00;
+		data[10] = 0x00;
+		data[11] = 0x00;
 		data[12] = 0xff;
 		data[13] = 0xff;
-		data[14] = 0xff;
-		data[15] = 0x21;
+		data[14] = 0xfd;
+		data[15] = 0xf5;
 		data[16] = 0xff;
 		data[17] = 0xff;
 		data[18] = 0xfd;
-		data[19] = 0xf3;
+		data[19] = 0xf4;
+		data[20] = 0xff;
+		data[21] = 0xff;
+		data[22] = 0xff;
+		data[23] = 0x21;
 		/* Set Encoding: MirrorLink, ContextInfo, DesktopSize, Run-Length */
-		conn_write(session.fd, data, 20);
+		conn_write(session.fd, data, 24);
 	}
 	session.quit = 0;
 	printf("vnc handshake finished\n");
@@ -248,6 +252,7 @@ void vnc_session_main_task(char *ip, uint16_t port)
 			default:
 				break;
 		}
+		printf("mainloop timeout, network idle\n");
 	}
 }
 
@@ -500,12 +505,15 @@ void framebuffer_raw_parse(struct vnc_session *session, uint8_t *fb, uint32_t le
 
 void framebuffer_rle_parse(struct vnc_session *session)
 {
-	uint8_t buf[2];
-	uint8_t *fb;
-	uint16_t m;
-	conn_read(session->fd, buf, 2);
-	m = ((uint16_t)buf[0] << 8) | buf[1];
-	fb = (uint8_t *)malloc(m * 3);
-	conn_read(session->fd, fb, m * 3);
-	free(fb);
+	uint16_t i;
+	for (i = 0; i < session->rfb_height; i++) {
+		uint8_t buf[2];
+		uint8_t *fb;
+		uint16_t m;
+		conn_read(session->fd, buf, 2);
+		m = ((uint16_t)buf[0] << 8) | buf[1];
+		fb = (uint8_t *)malloc(3 * m);
+		conn_read(session->fd, fb, 3 * m);
+		free(fb);
+	}
 }
