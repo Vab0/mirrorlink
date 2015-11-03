@@ -6,8 +6,8 @@
 #include "libxml/parser.h"
 #include "libxml/tree.h"
 
-#include "Platform/http_client.h"
-#include "Utils/str.h"
+#include "../Platform/http_client.h"
+#include "../Utils/str.h"
 
 enum {
 	ACTION_GET_APPLICATION_LIST,

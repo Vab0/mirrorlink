@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "Platform/conn.h"
-#include "Utils/buffer.h"
+#include "../Platform/conn.h"
+#include "../Utils/buffer.h"
 
 struct server_dispinfo {
 	uint8_t maxv;

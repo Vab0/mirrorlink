@@ -3,9 +3,9 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "Platform/conn.h"
-#include "Utils/buffer.h"
-#include "Utils/str.h"
+#include "../Platform/conn.h"
+#include "../Utils/buffer.h"
+#include "../Utils/str.h"
 
 struct http_req {
 	str_t method;
@@ -47,7 +47,6 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 	char buf[100];
 	str_t wbuf = 0;
 	struct buffer rbuf;
-	uint8_t i;
 	struct http_rsp *rsp;
 	int quit = 0;
 	buffer_init(&rbuf, 0);
@@ -84,14 +83,14 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 			continue;
 		}
 		buffer_append(&rbuf, 1);
-		pos = rbuf.buf;
+		pos = (char *)rbuf.buf;
 		sr = sscanf(pos, "HTTP/1.%1d %3d %*s\r\n", &dummy, (int *)&(rsp->errcode));
 		if (sr < 2) {
 			continue;
 		}
 		pos = strstr(pos, "Content-Length:");
 		if (0 == pos) {
-			pos = rbuf.buf;
+			pos = (char *)rbuf.buf;
 			pos = strstr(pos, "CONTENT-LENGTH:");
 			if (0 == pos) {
 				continue;
