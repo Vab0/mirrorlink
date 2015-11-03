@@ -81,6 +81,7 @@ static void fb_update_parse(struct vnc_session *session, uint16_t num);
 static void server_cut_text_parse(struct vnc_session *session, uint32_t len);
 static void ex_message_parse(struct vnc_session *session, uint8_t etype, uint16_t len);
 static void framebuffer_raw_parse(struct vnc_session *session, uint8_t *fb, uint32_t len);
+static void framebuffer_rle_parse(struct vnc_session *session);
 
 void vnc_session_main_task(char *ip, uint16_t port)
 {
@@ -453,6 +454,8 @@ void fb_update_parse(struct vnc_session *session, uint16_t num)
 				break;
 			case -525: /* Run Length Encoding */
 				{
+					
+					framebuffer_rle_parse(session);
 					printf("Run Length Encoding received\n");
 				}
 				break;
@@ -493,4 +496,14 @@ void server_cut_text_parse(struct vnc_session *session, uint32_t len)
 void framebuffer_raw_parse(struct vnc_session *session, uint8_t *fb, uint32_t len)
 {
 	
+}
+
+void framebuffer_rle_parse(struct vnc_session *session)
+{
+	uint8_t buf[3];
+	uint8_t *fb;
+	uint16_t m;
+	conn_read(session->fd, buf, 2);
+	m = ((uint16_t)buf[0] << 8) | buf[1];
+	fb = (uint8_t *)
 }
