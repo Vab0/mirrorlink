@@ -51,6 +51,10 @@ struct http_rsp *http_client_send(char *ip, uint16_t port, struct http_req *req)
 	int quit = 0;
 	buffer_init(&rbuf, 0);
 	fd = conn_open(ip, port);
+	if (fd < 0) {
+		printf("tcp connect failed, ip = %s, port = %d\n", ip, port);
+		return 0;
+	}
 	sprintf(buf, "%s %s HTTP/1.0\r\n", req->method, req->path);
 	str_append(&wbuf, buf);
 	sprintf(buf, "Host: %s:%d\r\n", ip, port);

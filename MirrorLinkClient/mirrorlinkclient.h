@@ -3,8 +3,6 @@
 
 #include <QObject>
 
-#include <stdint.h>
-
 class MirrorLinkClient : public QObject
 {
 	Q_OBJECT

@@ -4,7 +4,6 @@ ThreadManager::ThreadManager(QObject *parent) :
 	QObject(parent)
 {
 	connect(&m_thread, &QThread::started, this, &ThreadManager::onThreadStart);
-	connect(&m_thread, &QThread::finished, &m_client, &MirrorLinkClient::deleteLater);
 	m_client.moveToThread(&m_thread);
 	m_thread.start();
 }
