@@ -19,7 +19,9 @@ SOURCES += main.cpp\
     ../Platform/Linux/conn.c \
     ../Platform/Linux/http_client.c \
     ../Utils/buffer.c \
-    ../Utils/str.c
+    ../Utils/str.c \
+    mirrorlinkclient.cpp \
+    vncsession.cpp
 
 HEADERS  += mainwindow.h \
     ../CoreStack/remote_server.h \
@@ -27,7 +29,9 @@ HEADERS  += mainwindow.h \
     ../Platform/conn.h \
     ../Platform/http_client.h \
     ../Utils/buffer.h \
-    ../Utils/str.h
+    ../Utils/str.h \
+    mirrorlinkclient.h \
+    vncsession.h
 
 FORMS    += mainwindow.ui
 

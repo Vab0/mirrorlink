@@ -56,7 +56,7 @@ static struct action action_map[ACTION_MAX] = {
 };
 
 
-struct remote_server *remote_server_create(char *ip, uint16_t port, char *path)
+struct remote_server *remote_server_create(const char *ip, uint16_t port, const char *path)
 {
 	struct http_req *rq = http_client_make_req("GET", path);
 	struct http_rsp *rp = http_client_send(ip, port, rq);

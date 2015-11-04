@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct buffer {
 	uint8_t *buf;
 	uint32_t size;
@@ -14,5 +18,9 @@ extern void buffer_init(struct buffer *buf, uint32_t size);
 extern void buffer_clear(struct buffer *buf);
 
 extern void buffer_append(struct buffer *buf, int size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -12,7 +12,7 @@
 #include "../Utils/buffer.h"
 
 
-int conn_open(char *ip, uint16_t port)
+int conn_open(const char *ip, uint16_t port)
 {
 	struct sockaddr_in addr;
 	int fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);

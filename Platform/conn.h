@@ -5,7 +5,7 @@
 
 struct buffer;
 
-int conn_open(char *ip, uint16_t port);
+int conn_open(const char *ip, uint16_t port);
 
 extern void conn_close(int fd);
 
