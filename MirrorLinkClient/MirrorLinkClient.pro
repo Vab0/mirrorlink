@@ -21,7 +21,8 @@ SOURCES += main.cpp\
     ../Utils/buffer.c \
     ../Utils/str.c \
     mirrorlinkclient.cpp \
-    vncsession.cpp
+    vncsession.cpp \
+    threadmanager.cpp
 
 HEADERS  += mainwindow.h \
     ../CoreStack/remote_server.h \
@@ -31,7 +32,8 @@ HEADERS  += mainwindow.h \
     ../Utils/buffer.h \
     ../Utils/str.h \
     mirrorlinkclient.h \
-    vncsession.h
+    vncsession.h \
+    threadmanager.h
 
 FORMS    += mainwindow.ui
 
