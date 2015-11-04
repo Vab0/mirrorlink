@@ -28,5 +28,12 @@ void MirrorLinkClient::onStop()
 
 void MirrorLinkClient::onLaunch(quint32 appid)
 {
-	remote_server_launch_application(m_server, appid, 0);
+	if (!remote_server_launch_application(m_server, appid, 0)) {
+		process_app_launched(m_server, appid);
+	}
+}
+
+void MirrorLinkClient::process_app_launched(remote_server *server, quint32 appid)
+{
+
 }

@@ -18,6 +18,7 @@ public slots:
 	void onLaunch(quint32 appid);
 
 private:
+	void process_app_launched(struct remote_server *server, quint32 appid);
 	struct remote_server *m_server;
 };
 

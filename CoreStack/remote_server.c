@@ -36,7 +36,7 @@ struct remote_server {
 	struct service_info sinfo[SERVICE_TYPE_MAX];
 };
 
-typedef uint8_t (*action_parser)(struct remote_server *server, char *content, str_t *str);
+typedef uint8_t (*action_parser)(struct remote_server *server, char *content);
 
 struct action {
 	uint32_t stype;
@@ -45,9 +45,9 @@ struct action {
 };
 
 static uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t stype, char *action, char *args, action_parser handler);
-static uint8_t get_application_list_parse(struct remote_server *server, char *content, str_t *str);
-static uint8_t launch_application_parse(struct remote_server *server, char *content, str_t *str);
-static uint8_t set_client_profile_parse(struct remote_server *server, char *content, str_t *str);
+static uint8_t get_application_list_parse(struct remote_server *server, char *content);
+static uint8_t launch_application_parse(struct remote_server *server, char *content);
+static uint8_t set_client_profile_parse(struct remote_server *server, char *content);
 
 static struct action action_map[ACTION_MAX] = {
 	{SERVICE_TYPE_APP, "GetApplicationList", get_application_list_parse},
@@ -213,6 +213,7 @@ uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t styp
 	char buf[300] = {0};
 	str_t req = 0;
 	char *service = 0;
+	uint16_t ret = 0;
 
 	switch (stype) {
 		case SERVICE_TYPE_APP:
@@ -247,33 +248,36 @@ uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t styp
 		switch (http_client_get_errcode(rp)) {
 			case 200:
 				{
-					str_t str = 0;
 					printf("action invoke successfully.\n");
 					printf("response body is %s\n", http_client_get_body(rp));
 					if (handler) {
-						handler(server, http_client_get_body(rp), &str);
+						if (handler(server, http_client_get_body(rp))) {
+							ret = 200;
+						}
 					}
 				}
 				break;
 			default:
 				printf("action invoke error %d\n", http_client_get_errcode(rp));
+				ret = http_client_get_errcode(rp);
 				break;
 		}
 	}
 	http_client_free_rsp(rp);
+	return ret;
 }
 
-uint8_t get_application_list_parse(struct remote_server *server, char *content, str_t *str)
+uint8_t get_application_list_parse(struct remote_server *server, char *content)
 {
 	return 0;
 }
 
-uint8_t launch_application_parse(struct remote_server *server, char *content, str_t *str)
+uint8_t launch_application_parse(struct remote_server *server, char *content)
 {
 	return 0;
 }
 
-uint8_t set_client_profile_parse(struct remote_server *server, char *content, str_t *str)
+uint8_t set_client_profile_parse(struct remote_server *server, char *content)
 {
 	return 0;
 }
