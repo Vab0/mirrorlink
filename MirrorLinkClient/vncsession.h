@@ -15,6 +15,8 @@ signals:
 
 public slots:
 	void onStart(QString ip, quint16 port);
+
+private slots:
 	void onDoworks();
 
 private:

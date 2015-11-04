@@ -17,7 +17,7 @@ void VNCSession::onStart(QString ip, quint16 port)
 {
 	m_session = vnc_session_start(ip.toStdString().c_str(), port);
 	if (m_session) {
-		connect(this, &VNCSession::doworks, this, &VNCSession::onDoworks);
+		connect(this, &VNCSession::doworks, this, &VNCSession::onDoworks, Qt::QueuedConnection);
 		emit doworks();
 	}
 }

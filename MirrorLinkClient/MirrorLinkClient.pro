@@ -35,7 +35,7 @@ HEADERS  += mainwindow.h \
 
 FORMS    += mainwindow.ui
 
-unix:!macx: LIBS += -L$$PWD/../../../../../usr/local/libxml2/lib/ -lxml2
+unix:!macx: LIBS += -L/usr/local/libxml2/lib/ -lxml2
 
-INCLUDEPATH += $$PWD/../../../../../usr/local/libxml2/include/libxml2
-DEPENDPATH += $$PWD/../../../../../usr/local/libxml2/include/libxml2
+INCLUDEPATH += /usr/local/libxml2/include/libxml2
+DEPENDPATH += /usr/local/libxml2/include/libxml2

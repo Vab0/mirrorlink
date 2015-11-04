@@ -87,15 +87,24 @@ int conn_read(int fd, char *buf, uint32_t len)
 	fd_set efds;
 	struct timeval tv;
 	int ret;
+	int flag = 0;
 	uint32_t r = 0;
 	FD_ZERO(&efds);
 	FD_ZERO(&rfds);
 	FD_SET(fd, &rfds);
 	FD_SET(fd, &efds);
-	tv.tv_sec = 2;
+	if (1 == len) {
+		tv.tv_sec = 0;
+	} else {
+		flag = 1;
+	}
 	tv.tv_usec = 0;
 	while (len) {
-		ret = select(fd + 1, &rfds, 0, &efds, &tv);
+		if (flag) {
+			ret = select(fd + 1, &rfds, 0, &efds, &tv);
+		} else {
+			ret = select(fd + 1, &rfds, 0, &efds, 0);
+		}
 		if (0 == ret) {
 			return -2;
 		} else if (-1 == ret) {
@@ -136,16 +145,13 @@ int conn_read_all(int fd, struct buffer *buf)
 {
 	fd_set rfds;
 	fd_set efds;
-	struct timeval tv;
 	int ret;
 	FD_ZERO(&efds);
 	FD_ZERO(&rfds);
 	FD_SET(fd, &rfds);
 	FD_SET(fd, &efds);
-	tv.tv_sec = 2;
-	tv.tv_usec = 0;
 	while (1) {
-		ret = select(fd + 1, &rfds, 0, &efds, &tv);
+		ret = select(fd + 1, &rfds, 0, &efds, 0);
 		if (0 == ret) {
 			return -2;
 		} else if (-1 == ret) {
@@ -187,17 +193,14 @@ int conn_write(int fd, char *buf, uint32_t len)
 {
 	fd_set wfds;
 	fd_set efds;
-	struct timeval tv;
 	int ret;
 	uint32_t r = 0;
 	FD_ZERO(&efds);
 	FD_ZERO(&wfds);
 	FD_SET(fd, &wfds);
 	FD_SET(fd, &efds);
-	tv.tv_sec = 2;
-	tv.tv_usec = 0;
 	while (len) {
-		ret = select(fd + 1, 0, &wfds, &efds, &tv);
+		ret = select(fd + 1, 0, &wfds, &efds, 0);
 		if (0 == ret) {
 			return -2;
 		} else if (-1 == ret) {
