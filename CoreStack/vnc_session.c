@@ -58,15 +58,6 @@ struct server_evinfo {
 	uint32_t pes:1;
 } __attribute((packed));
 
-struct context_info {
-	uint32_t appid;
-	uint16_t tlac;
-	uint16_t tlcc;
-	uint32_t ac;
-	uint32_t cc;
-	uint32_t cr;
-} __attribute((packed));
-
 struct vnc_session {
 	int fd;
 	uint16_t rfb_width;
@@ -74,6 +65,7 @@ struct vnc_session {
 	struct server_dispinfo sdinfo;
 	struct server_evinfo seinfo;
 	uint8_t status;
+	struct vnc_session_cb *cb;
 };
 
 static void fb_update_parse(struct vnc_session *session, uint16_t num);
@@ -83,19 +75,19 @@ static void framebuffer_raw_parse(struct vnc_session *session, uint8_t *fb, uint
 static void framebuffer_rle_parse(struct vnc_session *session);
 static uint8_t vnc_session_doworks(struct vnc_session *session);
 
-void vnc_session_task(int fd)
+void vnc_session_task(int fd, struct vnc_session_cb *cb)
 {
 	struct vnc_session session;
 	uint8_t version = 0;
 	session.status = 0;
 	session.fd = fd;
+	session.cb = cb;
 	/* Protocol Version Handshake */
 	{
 		uint8_t buf[12];
 		conn_read(session.fd, buf, 12);
 		if (0 != memcmp(buf, "RFB 003.007\n", 12) && 0 != memcmp(buf, "RFB 003.008\n", 12)) {
-			conn_close(session.fd);
-			return 0;
+			return;
 		} else {
 			version = buf[10] - '0';
 			conn_write(session.fd, buf, 12);
@@ -113,8 +105,7 @@ void vnc_session_task(int fd)
 			buf = (uint8_t *)malloc(n);
 			conn_read(session.fd, buf, n);
 			free(buf);
-			conn_close(session.fd);
-			return 0;
+			return;
 		} else {
 			uint8_t i;
 			uint8_t flag = 0;
@@ -129,8 +120,7 @@ void vnc_session_task(int fd)
 			if (flag) {
 				conn_write(session.fd, &flag, 1);
 			} else {
-				conn_close(session.fd);
-				return 0;
+				return;
 			}
 		}
 	}
@@ -146,11 +136,9 @@ void vnc_session_task(int fd)
 			buf = (uint8_t *)malloc(rlen);
 			conn_read(session.fd, buf, rlen);
 			free(buf);
-			conn_close(session.fd);
-			return 0;
+			return;
 		} else if (0 != r) {
-			conn_close(session.fd);
-			return 0;
+			return;
 		}
 	}
 	printf("Security Result Handshake Finished.\n");
@@ -271,7 +259,6 @@ uint8_t ex_message_parse(struct vnc_session *session, uint8_t etype, uint16_t le
 				uint8_t data[4] = {0x80, 0x00, 0x00, 0x00};
 				/* response byebye message with byebye. */
 				conn_write(session->fd, data, 4);
-				conn_close(session->fd);
 				free(buf);
 				return 0;
 			}
@@ -523,3 +510,25 @@ void framebuffer_rle_parse(struct vnc_session *session)
 	}
 }
 
+void vnc_session_send_pointer_event(int fd, struct pointer_event pointer)
+{
+
+}
+
+
+void vnc_session_send_key_event(int fd, struct key_event key)
+{
+
+}
+
+
+void vnc_session_send_device_status(int fd, uint32_t status)
+{
+
+}
+
+
+void vnc_session_send_byebye(int fd)
+{
+
+}
