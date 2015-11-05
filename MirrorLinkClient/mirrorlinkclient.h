@@ -13,9 +13,9 @@ public:
 signals:
 
 public slots:
-	void onStart(QString ip, qint16 port, QString path);
+	void onStart(QString ip, quint16 port, QString path);
 	void onStop();
-	void onLaunch(qint32 appid);
+	void onLaunch(quint32 appid);
 
 private:
 	struct remote_server *m_server;

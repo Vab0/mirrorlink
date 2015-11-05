@@ -14,14 +14,14 @@ public:
 	~ThreadManager();
 
 signals:
-	void start(QString ip, qint16 port, QString path);
+	void start(QString ip, quint16 port, QString path);
 	void stop();
-	void launch(qint32 appid);
+	void launch(quint32 appid);
 
 public slots:
-	void startMirrorLinkClient(QString ip, qint16 port, QString path);
+	void startMirrorLinkClient(QString ip, quint16 port, QString path);
 	void stopMirrorLinkClient();
-	void launchApp(qint32 appid);
+	void launchApp(quint32 appid);
 
 private slots:
 	void onThreadStart();

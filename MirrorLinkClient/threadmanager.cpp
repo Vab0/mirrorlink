@@ -14,7 +14,7 @@ ThreadManager::~ThreadManager()
 	m_thread.wait();
 }
 
-void ThreadManager::startMirrorLinkClient(QString ip, qint16 port, QString path)
+void ThreadManager::startMirrorLinkClient(QString ip, quint16 port, QString path)
 {
 	emit start(ip, port, path);
 }
@@ -24,7 +24,7 @@ void ThreadManager::stopMirrorLinkClient()
 	emit stop();
 }
 
-void ThreadManager::launchApp(qint32 appid)
+void ThreadManager::launchApp(quint32 appid)
 {
 	emit launch(appid);
 }

@@ -219,7 +219,7 @@ uint16_t remote_server_invoke_action(struct remote_server *server, uint16_t styp
 			service = "TmApplicationServer:1";
 			break;
 		case SERVICE_TYPE_CLP:
-			service = "TmClientProfileServer:1";
+			service = "TmClientProfile:1";
 			break;
 		case SERVICE_TYPE_NOT:
 			service = "TmNotificationServer:1";
