@@ -81,24 +81,24 @@ static void server_cut_text_parse(struct vnc_session *session, uint32_t len);
 static uint8_t ex_message_parse(struct vnc_session *session, uint8_t etype, uint16_t len);
 static void framebuffer_raw_parse(struct vnc_session *session, uint8_t *fb, uint32_t len);
 static void framebuffer_rle_parse(struct vnc_session *session);
+static uint8_t vnc_session_doworks(struct vnc_session *session);
 
-struct vnc_session *vnc_session_start(const char *ip, uint16_t port)
+void vnc_session_task(int fd)
 {
-	struct vnc_session *session = (struct vnc_session *)malloc(sizeof(*session));
+	struct vnc_session session;
 	uint8_t version = 0;
-	session->status = 0;
-	session->fd = conn_open(ip, port);
+	session.status = 0;
+	session.fd = fd;
 	/* Protocol Version Handshake */
 	{
 		uint8_t buf[12];
-		conn_read(session->fd, buf, 12);
+		conn_read(session.fd, buf, 12);
 		if (0 != memcmp(buf, "RFB 003.007\n", 12) && 0 != memcmp(buf, "RFB 003.008\n", 12)) {
-			conn_close(session->fd);
-			free(session);
+			conn_close(session.fd);
 			return 0;
 		} else {
 			version = buf[10] - '0';
-			conn_write(session->fd, buf, 12);
+			conn_write(session.fd, buf, 12);
 		}
 	}
 	printf("Protocol Version Handshake Finished.\n");
@@ -106,21 +106,20 @@ struct vnc_session *vnc_session_start(const char *ip, uint16_t port)
 	{
 		uint8_t num = 0;
 		uint8_t *buf = 0;
-		conn_read(session->fd, &num, 1);
+		conn_read(session.fd, &num, 1);
 		if (0 == num) {
 			uint32_t n;
-			conn_read(session->fd, (uint8_t *)&n, 4);
+			conn_read(session.fd, (uint8_t *)&n, 4);
 			buf = (uint8_t *)malloc(n);
-			conn_read(session->fd, buf, n);
+			conn_read(session.fd, buf, n);
 			free(buf);
-			conn_close(session->fd);
-			free(session);
+			conn_close(session.fd);
 			return 0;
 		} else {
 			uint8_t i;
 			uint8_t flag = 0;
 			buf = (uint8_t *)malloc(num);
-			conn_read(session->fd, buf, num);
+			conn_read(session.fd, buf, num);
 			for (i = 0; i < num; i++) {
 				if (1 == buf[i]) {
 					flag = 1;
@@ -128,10 +127,9 @@ struct vnc_session *vnc_session_start(const char *ip, uint16_t port)
 			}
 			free(buf);
 			if (flag) {
-				conn_write(session->fd, &flag, 1);
+				conn_write(session.fd, &flag, 1);
 			} else {
-				conn_close(session->fd);
-				free(session);
+				conn_close(session.fd);
 				return 0;
 			}
 		}
@@ -142,18 +140,16 @@ struct vnc_session *vnc_session_start(const char *ip, uint16_t port)
 		uint32_t r;
 		uint32_t rlen;
 		uint8_t *buf = 0;
-		conn_read(session->fd, (uint8_t *)&r, 4);
+		conn_read(session.fd, (uint8_t *)&r, 4);
 		if (1 == r) {
-			conn_read(session->fd, (uint8_t *)&rlen, 4);
+			conn_read(session.fd, (uint8_t *)&rlen, 4);
 			buf = (uint8_t *)malloc(rlen);
-			conn_read(session->fd, buf, rlen);
+			conn_read(session.fd, buf, rlen);
 			free(buf);
-			conn_close(session->fd);
-			free(session);
+			conn_close(session.fd);
 			return 0;
 		} else if (0 != r) {
-			conn_close(session->fd);
-			free(session);
+			conn_close(session.fd);
 			return 0;
 		}
 	}
@@ -163,17 +159,17 @@ struct vnc_session *vnc_session_start(const char *ip, uint16_t port)
 		uint8_t val = 0;
 		struct buffer buf;
 		uint32_t len = 0;
-		conn_write(session->fd, &val, 1);
+		conn_write(session.fd, &val, 1);
 		buffer_init(&buf, 24);
-		conn_read(session->fd, buf.buf, 24);
+		conn_read(session.fd, buf.buf, 24);
 		buf.len += 24;
 		len = ntohl(*(uint32_t *)(buf.buf + 20));
 		buffer_append(&buf, len);
-		conn_read(session->fd, buf.buf + 24, len);
+		conn_read(session.fd, buf.buf + 24, len);
 		/* only remote width and height is needed.
 		   pixel format is indicated in Server Configuration Message instead. */
-		session->rfb_width = ((uint16_t)buf.buf[0] << 8) | buf.buf[1];
-		session->rfb_height = ((uint16_t)buf.buf[2] << 8) | buf.buf[3];
+		session.rfb_width = ((uint16_t)buf.buf[0] << 8) | buf.buf[1];
+		session.rfb_height = ((uint16_t)buf.buf[2] << 8) | buf.buf[3];
 		buffer_clear(&buf);
 	}
 	printf("Initialization Messages Finished.\n");
@@ -201,9 +197,10 @@ struct vnc_session *vnc_session_start(const char *ip, uint16_t port)
 		data[22] = 0xff;
 		data[23] = 0x21;
 		/* Set Encoding: MirrorLink, ContextInfo, DesktopSize, Run-Length */
-		conn_write(session->fd, data, 24);
+		conn_write(session.fd, data, 24);
 	}
 	printf("vnc handshake finished\n");
+	while (vnc_session_doworks(&session));
 }
 
 uint8_t vnc_session_doworks(struct vnc_session *session)
@@ -526,11 +523,3 @@ void framebuffer_rle_parse(struct vnc_session *session)
 	}
 }
 
-
-void vnc_session_stop(struct vnc_session *session)
-{
-	if (session) {
-		conn_close(session->fd);
-		free(session);
-	}
-}
