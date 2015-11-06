@@ -15,9 +15,11 @@ MirrorLinkClient::~MirrorLinkClient()
 
 void MirrorLinkClient::onStart(QString ip, quint16 port, QString path)
 {
-	m_server = remote_server_create(ip.toStdString().c_str(), port, path.toStdString().c_str());
-	/* remote_server_set_client_profile(m_server, 0); */
-	remote_server_get_application_list(m_server, 0, "*");
+	if (!m_server) {
+		m_server = remote_server_create(ip.toStdString().c_str(), port, path.toStdString().c_str());
+		/* remote_server_set_client_profile(m_server, 0); */
+		remote_server_get_application_list(m_server, 0, "*");
+	}
 }
 
 void MirrorLinkClient::onStop()
@@ -28,8 +30,10 @@ void MirrorLinkClient::onStop()
 
 void MirrorLinkClient::onLaunch(quint32 appid)
 {
-	if (!remote_server_launch_application(m_server, appid, 0)) {
-		process_app_launched(m_server, appid);
+	if (m_server) {
+		if (!remote_server_launch_application(m_server, appid, 0)) {
+			process_app_launched(m_server, appid);
+		}
 	}
 }
 
